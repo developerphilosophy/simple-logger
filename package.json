@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "NODE_ENV=test mocha --timeout 15000 --recursive --exit -r ts-node/register 'test/**/*.test.ts'",
-    "posttest**": "rimraf logs",
-    "clean": "rimraf logs",
+    "posttest": "rimraf logs",
+    "clean": "rimraf logs dist",
     "build": "tsc",
     "prepare": "tsc"
   },

@@ -6,6 +6,7 @@
   "scripts": {
     "test": "NODE_ENV=test mocha --recursive --exit dist/**/*.test.js",
     "test-ts": "NODE_ENV=test mocha --recursive --exit -r ts-node/register 'src/**/*.test.ts'",
+    "build": "tsc",
     "prepublish": "tsc"
   },
   "keywords": [],

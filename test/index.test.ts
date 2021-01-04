@@ -16,4 +16,25 @@ describe("UNIT: Test import and initialization", () => {
 			}
 		});
 	});
+
+	it("Should write a debug output to the logs", async () => {
+		const result = await SimpleLogger.debug("Debug output goes here");
+		expect(result).to.be.true;
+	});
+
+	it("Should write a info message to logs", async () => {
+		const result = await SimpleLogger.info("Info message goes here");
+		expect(result).to.be.true;
+	});
+
+	it("Should write a warn message to logs", async () => {
+		const result = await SimpleLogger.info("Warn message goes here");
+		expect(result).to.be.true;
+	});
+
+	it("Should write error stack to logs and return error key", async () => {
+		const testError = new Error("This is a test error message");
+		const errorKey = await SimpleLogger.error(testError);
+		expect(errorKey).to.be.greaterThan(0);
+	});
 });

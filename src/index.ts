@@ -175,15 +175,12 @@ class SimpleLogger {
 	public static debug(...messages: string[]): Promise<any> {
 		return new Promise(async (resolve, reject) => {
 			try {
-				await this.writeToLogFile(
-					"************************************ DEBUG START ************************************"
-				);
 				for (const message of messages) {
 					const formattedMessage = `DEBUG: ${chalk.yellow(message)}`;
 					if (this._env !== "test") {
 						console.log(formattedMessage);
 					}
-					await this.writeToLogFile(message);
+					await this.writeToLogFile(`DEBUG: ${message}`);
 				}
 				return resolve(true);
 			} catch (error) {
@@ -195,15 +192,12 @@ class SimpleLogger {
 	public static info(...messages: string[]): Promise<any> {
 		return new Promise(async (resolve, reject) => {
 			try {
-				this.writeToLogFile(
-					"************************************ INFO START ************************************"
-				);
 				for (const message of messages) {
 					const formattedMessage = `INFO: ${chalk.green(message)}`;
 					if (this._env !== "test") {
 						console.log(formattedMessage);
 					}
-					this.writeToLogFile(message);
+					this.writeToLogFile(`INFO: ${message}`);
 				}
 				return resolve(true);
 			} catch (error) {
@@ -215,15 +209,12 @@ class SimpleLogger {
 	public static warn(...messages: string[]): Promise<any> {
 		return new Promise(async (resolve, reject) => {
 			try {
-				this.writeToLogFile(
-					"************************************ WARN START ************************************"
-				);
 				for (const message of messages) {
 					const formattedMessage = `WARN: ${chalk.cyanBright(message)}`;
 					if (this._env !== "test") {
 						console.log(formattedMessage);
 					}
-					this.writeToLogFile(message);
+					this.writeToLogFile(`WARN: ${message}`);
 				}
 				return resolve(true);
 			} catch (error) {
@@ -242,13 +233,12 @@ class SimpleLogger {
 				const formattedMessage = `ERROR: Error Key: ${key}\n${chalk.red(
 					error.message
 				)}\nStack trace: ${chalk.red(error.stack ? error.stack : "")}`;
+
 				if (this._env !== "test") {
 					console.error(formattedMessage);
 				}
 				await this.writeToLogFile(
-					`************************************ ERROR START ************************************\nERROR: Error Key: ${key}\n${
-						error.message
-					}\n${error.stack ? error.stack : ""}`
+					`ERROR KEY: ${key}\n${error.stack ? error.stack : ""}`
 				);
 				if (exit) return process.exit(1);
 				return resolve(key);

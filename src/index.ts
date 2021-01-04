@@ -1,10 +1,15 @@
-import * as chalk from "chalk";
+import { rejects } from "assert";
+import chalk from "chalk";
 import * as fs from "fs";
 import * as path from "path";
+import { resolve } from "path";
 
 class SimpleLogger {
 	private static _logName: string = "SimpleLogger.logs";
-	private static _logsDir: string = path.join(__dirname, "../../logs/"); // Defaults to two folders up in the root directory
+	private static _logsDir: string = path.join(
+		process.env.PWD as string,
+		"logs"
+	); // Defaults to two folders up in the root directory
 	private static _isInitialized: boolean = false;
 	private static _env: string = process.env.NODE_ENV || "development";
 	private static _cycleTime: number = 86400000;
@@ -110,16 +115,35 @@ class SimpleLogger {
 		});
 	}
 
-	private static writeToLogFile(message: string, isExit: boolean = false) {
-		const fullLogPath: string = this.getFullLogPath();
-		const UTCString: string = this.getUTCString();
+	private static writeToLogFile(
+		message: string,
+		isExit: boolean = false
+	): Promise<any> {
+		return new Promise((resolve, reject) => {
+			const fullLogPath: string = this.getFullLogPath();
+			const UTCString: string = this.getUTCString();
 
-		fs.access(fullLogPath, (error) => {
-			if (error) {
-				this.printErrorToConsole(error);
-				fs.mkdir(this._logsDir, (error) => {
-					if (error && error.errno !== -17)
-						return this.printErrorToConsole(error);
+			fs.access(fullLogPath, (error) => {
+				if (error) {
+					this.printErrorToConsole(error);
+
+					fs.mkdir(this._logsDir, (error) => {
+						if (error && error.errno !== -17) {
+							this.printErrorToConsole(error);
+							return reject(error);
+						}
+
+						fs.appendFile(
+							this.getFullLogPath(),
+							`${UTCString}: ${message}\n`,
+							(error) => {
+								if (error) this.printErrorToConsole(error);
+								if (isExit) process.exit(1);
+							}
+						);
+					});
+					return resolve(null);
+				} else {
 					fs.appendFile(
 						this.getFullLogPath(),
 						`${UTCString}: ${message}\n`,
@@ -128,17 +152,9 @@ class SimpleLogger {
 							if (isExit) process.exit(1);
 						}
 					);
-				});
-			} else {
-				fs.appendFile(
-					this.getFullLogPath(),
-					`${UTCString}: ${message}\n`,
-					(error) => {
-						if (error) this.printErrorToConsole(error);
-						if (isExit) process.exit(1);
-					}
-				);
-			}
+					return resolve(null);
+				}
+			});
 		});
 	}
 
@@ -156,60 +172,90 @@ class SimpleLogger {
 	/**
 	 * All the logging functions
 	 */
-	public static debug(...messages: string[]): void {
-		this.writeToLogFile(
-			"************************************ DEBUG START ************************************"
-		);
-		for (const message of messages) {
-			const formattedMessage = `DEBUG: ${chalk.yellow(message)}`;
-			if (this._env !== "test") {
-				console.log(formattedMessage);
+	public static debug(...messages: string[]): Promise<any> {
+		return new Promise(async (resolve, reject) => {
+			try {
+				await this.writeToLogFile(
+					"************************************ DEBUG START ************************************"
+				);
+				for (const message of messages) {
+					const formattedMessage = `DEBUG: ${chalk.yellow(message)}`;
+					if (this._env !== "test") {
+						console.log(formattedMessage);
+					}
+					await this.writeToLogFile(message);
+				}
+				return resolve(true);
+			} catch (error) {
+				return reject(error);
 			}
-			this.writeToLogFile(message);
-		}
+		});
 	}
 
-	public static info(...messages: string[]): void {
-		this.writeToLogFile(
-			"************************************ INFO START ************************************"
-		);
-		for (const message of messages) {
-			const formattedMessage = `INFO: ${chalk.green(message)}`;
-			if (this._env !== "test") {
-				console.log(formattedMessage);
+	public static info(...messages: string[]): Promise<any> {
+		return new Promise(async (resolve, reject) => {
+			try {
+				this.writeToLogFile(
+					"************************************ INFO START ************************************"
+				);
+				for (const message of messages) {
+					const formattedMessage = `INFO: ${chalk.green(message)}`;
+					if (this._env !== "test") {
+						console.log(formattedMessage);
+					}
+					this.writeToLogFile(message);
+				}
+				return resolve(true);
+			} catch (error) {
+				return reject(error);
 			}
-			this.writeToLogFile(message);
-		}
+		});
 	}
 
-	public static warn(...messages: string[]): void {
-		this.writeToLogFile(
-			"************************************ WARN START ************************************"
-		);
-		for (const message of messages) {
-			const formattedMessage = `WARN: ${chalk.cyanBright(message)}`;
-			if (this._env !== "test") {
-				console.log(formattedMessage);
+	public static warn(...messages: string[]): Promise<any> {
+		return new Promise(async (resolve, reject) => {
+			try {
+				this.writeToLogFile(
+					"************************************ WARN START ************************************"
+				);
+				for (const message of messages) {
+					const formattedMessage = `WARN: ${chalk.cyanBright(message)}`;
+					if (this._env !== "test") {
+						console.log(formattedMessage);
+					}
+					this.writeToLogFile(message);
+				}
+				return resolve(true);
+			} catch (error) {
+				return rejects(error);
 			}
-			this.writeToLogFile(message);
-		}
+		});
 	}
 
-	public static error(error: Error, exit: boolean = false): number {
-		const key = Date.now();
-		const formattedMessage = `ERROR: Error Key: ${key}\n${chalk.red(
-			error.message
-		)}\nStack trace: ${chalk.red(error.stack ? error.stack : "")}`;
-		if (this._env !== "test") {
-			console.error(formattedMessage);
-		}
-		this.writeToLogFile(
-			`************************************ ERROR START ************************************\nERROR: Error Key: ${key}\n${
-				error.message
-			}\n${error.stack ? error.stack : ""}`
-		);
-		if (exit) return process.exit(1);
-		return key;
+	public static async error(
+		error: Error,
+		exit: boolean = false
+	): Promise<number | Error> {
+		return new Promise(async (resolve, reject) => {
+			try {
+				const key = Date.now();
+				const formattedMessage = `ERROR: Error Key: ${key}\n${chalk.red(
+					error.message
+				)}\nStack trace: ${chalk.red(error.stack ? error.stack : "")}`;
+				if (this._env !== "test") {
+					console.error(formattedMessage);
+				}
+				await this.writeToLogFile(
+					`************************************ ERROR START ************************************\nERROR: Error Key: ${key}\n${
+						error.message
+					}\n${error.stack ? error.stack : ""}`
+				);
+				if (exit) return process.exit(1);
+				return resolve(key);
+			} catch (error) {
+				return reject(error);
+			}
+		});
 	}
 }
 

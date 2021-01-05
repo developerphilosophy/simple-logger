@@ -1,16 +1,22 @@
 {
-  "name": "simple-logger",
+  "name": "sds-simple-logger",
   "version": "0.0.1",
   "description": "",
   "main": "dist/index.js",
+  "files": [
+    "dist/**/*"
+  ],
   "scripts": {
     "test": "NODE_ENV=test mocha --timeout 15000 --recursive --exit -r ts-node/register 'test/**/*.test.ts'",
     "posttest": "rimraf logs",
     "clean": "rimraf logs dist",
     "build": "tsc",
-    "prepare": "tsc",
     "format": "prettier --write \"src/**/*.ts\"",
-"lint": "tslint -p tsconfig.json"
+    "lint": "tslint -p tsconfig.json",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run test && npm run lint",
+    "version": "npm run format && git add -A src",
+    "postversion": "git push && git push --tags"
   },
   "keywords": [],
   "author": {

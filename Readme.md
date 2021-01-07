@@ -43,7 +43,7 @@ All the methods are asynchronous as we writing the logs to a file which is an as
 Prints **DEBUG** in front the logs. Sample output:
 `Tue, 05 Jan 2021 06:12:49 GMT: DEBUG: Debug output test`
 
-##### Usage:
+Usage:
 
 ```ts
 // Signature of function
@@ -58,7 +58,7 @@ SimpleLogger.debug('Debug test one', 'Debug test two', 'Debug test three');
 Prints **INFO** in front the logs. Sample output:
 `Tue, 05 Jan 2021 06:13:18 GMT: INFO: Info output test`
 
-##### Usage:
+Usage:
 
 ```ts
 // Signature of function
@@ -73,7 +73,7 @@ SimpleLogger.info('Info test one', 'Info test two', 'Info test three');
 Prints **WARN** in front the logs. Sample output:
 `Tue, 05 Jan 2021 06:13:18 GMT: WARN: Warn output test`
 
-##### Usage:
+Usage:
 
 ```ts
 // Signature
@@ -102,7 +102,7 @@ Error: Error output test
   at main (/usr/local/lib/node_modules/ts-node/src/bin.ts:227:14)
 ```
 
-##### Usage:
+Usage:
 
 ```ts
 // Signature

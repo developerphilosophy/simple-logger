@@ -38,7 +38,7 @@ All the methods available can take variable string messages or in other words ar
 
 All the methods are asynchronous as we writing the logs to a file which is an async operation and returns a promise.
 
-##### **Debug**
+#### **Debug**
 
 Prints **DEBUG** in front the logs. Sample output:
 `Tue, 05 Jan 2021 06:12:49 GMT: DEBUG: Debug output test`
@@ -53,7 +53,7 @@ SimpleLogger.debug('Debug test');
 SimpleLogger.debug('Debug test one', 'Debug test two', 'Debug test three');
 ```
 
-##### **Info**
+#### **Info**
 
 Prints **INFO** in front the logs. Sample output:
 `Tue, 05 Jan 2021 06:13:18 GMT: INFO: Info output test`
@@ -68,7 +68,7 @@ SimpleLogger.info('Info test');
 SimpleLogger.info('Info test one', 'Info test two', 'Info test three');
 ```
 
-##### **Warn**
+#### **Warn**
 
 Prints **WARN** in front the logs. Sample output:
 `Tue, 05 Jan 2021 06:13:18 GMT: WARN: Warn output test`
@@ -83,7 +83,7 @@ SimpleLogger.warn('Warn test');
 SimpleLogger.warn('Warn test one', 'Warn test two', 'Warn test three');
 ```
 
-##### **Error**
+#### **Error**
 
 Prints **Error** in front the logs and also prints the error stack. Along with this it also print a unique error key. If you want to exit the node process after printing the error pass true as the second arg. Sample output:
 

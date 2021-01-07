@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 class SimpleLogger {
-  private static _logName: string = 'SimpleLogger.logs';
+  private static _logName: string = 'sds-simple-logger.logs';
   private static _logsDir: string = path.join(process.env.PWD as string, 'logs'); // Defaults to two folders up in the root directory
   private static _isInitialized: boolean = false;
   private static _env: string = process.env.NODE_ENV || 'development';
@@ -147,7 +147,7 @@ class SimpleLogger {
   /**
    * All the logging functions
    */
-  public static debug(...messages: string[]): Promise<any> {
+  public static debug(...messages: string[]): Promise<boolean | Error> {
     return new Promise(async (resolve, reject) => {
       try {
         for (const message of messages) {
@@ -164,7 +164,7 @@ class SimpleLogger {
     });
   }
 
-  public static info(...messages: string[]): Promise<any> {
+  public static info(...messages: string[]): Promise<boolean | Error> {
     return new Promise(async (resolve, reject) => {
       try {
         for (const message of messages) {
@@ -181,7 +181,7 @@ class SimpleLogger {
     });
   }
 
-  public static warn(...messages: string[]): Promise<any> {
+  public static warn(...messages: string[]): Promise<boolean | Error> {
     return new Promise(async (resolve, reject) => {
       try {
         for (const message of messages) {
@@ -198,7 +198,7 @@ class SimpleLogger {
     });
   }
 
-  public static async error(error: Error, exit: boolean = false): Promise<number | Error> {
+  public static error(error: Error, exit: boolean = false): Promise<number | Error> {
     return new Promise(async (resolve, reject) => {
       try {
         const key = Date.now();

@@ -28,6 +28,8 @@ Once imported you can use it in any other file:
 
 ```ts
 import SimpleLogger from 'sds-simple-logger';
+// or
+const SimpleLogger = require('sds-simple-logger');
 
 SimpleLogger.log('Test logs');
 ```

@@ -1,6 +1,6 @@
 {
   "name": "sds-simple-logger",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "",
   "main": "dist/index.js",
   "files": [

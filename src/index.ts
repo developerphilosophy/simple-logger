@@ -113,7 +113,6 @@ class SimpleLogger {
         fs.mkdir(this._logsDir, (errorTwo) => {
           if (errorTwo && errorTwo.errno !== -17) {
             this.printErrorToConsole(errorTwo);
-            throw errorTwo;
           }
 
           fs.appendFile(this.getFullLogPath(), `${UTCString}: ${message}\n`, (errorThree) => {
@@ -144,71 +143,48 @@ class SimpleLogger {
   /**
    * All the logging functions
    */
-  public static debug(...messages: string[]): boolean {
-    try {
-      for (const message of messages) {
-        const formattedMessage = `DEBUG: ${chalk.yellow(message)}`;
-        if (this._env !== 'test') {
-          console.log(formattedMessage);
-        }
-        this.writeToLogFile(`DEBUG: ${message}`);
+  public static debug(...messages: string[]): void {
+    for (const message of messages) {
+      const formattedMessage = `DEBUG: ${chalk.yellow(message)}`;
+      if (this._env !== 'test') {
+        console.log(formattedMessage);
       }
-      return true;
-    } catch (error) {
-      this.printErrorToConsole(error);
-      return false;
+      this.writeToLogFile(`DEBUG: ${message}`);
     }
   }
 
-  public static info(...messages: string[]): boolean {
-    try {
-      for (const message of messages) {
-        const formattedMessage = `INFO: ${chalk.green(message)}`;
-        if (this._env !== 'test') {
-          console.log(formattedMessage);
-        }
-        this.writeToLogFile(`INFO: ${message}`);
+  public static info(...messages: string[]): void {
+    for (const message of messages) {
+      const formattedMessage = `INFO: ${chalk.green(message)}`;
+      if (this._env !== 'test') {
+        console.log(formattedMessage);
       }
-      return true;
-    } catch (error) {
-      this.printErrorToConsole(error);
-      return false;
+      this.writeToLogFile(`INFO: ${message}`);
     }
   }
 
-  public static warn(...messages: string[]): boolean {
-    try {
-      for (const message of messages) {
-        const formattedMessage = `WARN: ${chalk.cyanBright(message)}`;
-        if (this._env !== 'test') {
-          console.log(formattedMessage);
-        }
-        this.writeToLogFile(`WARN: ${message}`);
+  public static warn(...messages: string[]) {
+    for (const message of messages) {
+      const formattedMessage = `WARN: ${chalk.cyanBright(message)}`;
+      if (this._env !== 'test') {
+        console.log(formattedMessage);
       }
-      return true;
-    } catch (error) {
-      this.printErrorToConsole(error);
-      return false;
+      this.writeToLogFile(`WARN: ${message}`);
     }
   }
 
   public static error(error: Error, exit: boolean = false): number {
-    try {
-      const key = Date.now();
-      const formattedMessage = `ERROR: Error Key: ${key}\n${chalk.red(error.message)}\nStack trace: ${chalk.red(
-        error.stack ? error.stack : '',
-      )}`;
+    const key = Date.now();
+    const formattedMessage = `ERROR: Error Key: ${key}\n${chalk.red(error.message)}\nStack trace: ${chalk.red(
+      error.stack ? error.stack : '',
+    )}`;
 
-      if (this._env !== 'test') {
-        console.error(formattedMessage);
-      }
-      this.writeToLogFile(`ERROR KEY: ${key}\n${error.stack ? error.stack : ''}`);
-      if (exit) return process.exit(1);
-      return key;
-    } catch (error) {
-      this.printErrorToConsole(error);
-      return 0;
+    if (this._env !== 'test') {
+      console.error(formattedMessage);
     }
+    this.writeToLogFile(`ERROR KEY: ${key}\n${error.stack ? error.stack : ''}`);
+    if (exit) return process.exit(1);
+    return key;
   }
 }
 

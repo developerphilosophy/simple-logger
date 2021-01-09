@@ -102,34 +102,31 @@ class SimpleLogger {
     });
   }
 
-  private static writeToLogFile(message: string, isExit: boolean = false): Promise<any> {
-    return new Promise((resolve, reject) => {
-      const fullLogPath: string = this.getFullLogPath();
-      const UTCString: string = this.getUTCString();
+  private static writeToLogFile(message: string, isExit: boolean = false) {
+    const fullLogPath: string = this.getFullLogPath();
+    const UTCString: string = this.getUTCString();
 
-      fs.access(fullLogPath, (errorOne) => {
-        if (errorOne) {
-          this.printErrorToConsole(errorOne);
+    fs.access(fullLogPath, (errorOne) => {
+      if (errorOne) {
+        this.printErrorToConsole(errorOne);
 
-          fs.mkdir(this._logsDir, (errorTwo) => {
-            if (errorTwo && errorTwo.errno !== -17) {
-              this.printErrorToConsole(errorTwo);
-              return reject(errorTwo);
-            }
+        fs.mkdir(this._logsDir, (errorTwo) => {
+          if (errorTwo && errorTwo.errno !== -17) {
+            this.printErrorToConsole(errorTwo);
+            throw errorTwo;
+          }
 
-            fs.appendFile(this.getFullLogPath(), `${UTCString}: ${message}\n`, (errorThree) => {
-              if (errorThree) this.printErrorToConsole(errorThree);
-              if (isExit) process.exit(1);
-            });
-          });
-        } else {
-          fs.appendFile(this.getFullLogPath(), `${UTCString}: ${message}\n`, (errorFour) => {
-            if (errorFour) this.printErrorToConsole(errorFour);
+          fs.appendFile(this.getFullLogPath(), `${UTCString}: ${message}\n`, (errorThree) => {
+            if (errorThree) this.printErrorToConsole(errorThree);
             if (isExit) process.exit(1);
           });
-        }
-        return resolve(null);
-      });
+        });
+      } else {
+        fs.appendFile(this.getFullLogPath(), `${UTCString}: ${message}\n`, (errorFour) => {
+          if (errorFour) this.printErrorToConsole(errorFour);
+          if (isExit) process.exit(1);
+        });
+      }
     });
   }
 
@@ -147,75 +144,71 @@ class SimpleLogger {
   /**
    * All the logging functions
    */
-  public static debug(...messages: string[]): Promise<boolean | Error> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        for (const message of messages) {
-          const formattedMessage = `DEBUG: ${chalk.yellow(message)}`;
-          if (this._env !== 'test') {
-            console.log(formattedMessage);
-          }
-          await this.writeToLogFile(`DEBUG: ${message}`);
-        }
-        return resolve(true);
-      } catch (error) {
-        return reject(error);
-      }
-    });
-  }
-
-  public static info(...messages: string[]): Promise<boolean | Error> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        for (const message of messages) {
-          const formattedMessage = `INFO: ${chalk.green(message)}`;
-          if (this._env !== 'test') {
-            console.log(formattedMessage);
-          }
-          this.writeToLogFile(`INFO: ${message}`);
-        }
-        return resolve(true);
-      } catch (error) {
-        return reject(error);
-      }
-    });
-  }
-
-  public static warn(...messages: string[]): Promise<boolean | Error> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        for (const message of messages) {
-          const formattedMessage = `WARN: ${chalk.cyanBright(message)}`;
-          if (this._env !== 'test') {
-            console.log(formattedMessage);
-          }
-          this.writeToLogFile(`WARN: ${message}`);
-        }
-        return resolve(true);
-      } catch (error) {
-        return rejects(error);
-      }
-    });
-  }
-
-  public static error(error: Error, exit: boolean = false): Promise<number | Error> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const key = Date.now();
-        const formattedMessage = `ERROR: Error Key: ${key}\n${chalk.red(error.message)}\nStack trace: ${chalk.red(
-          error.stack ? error.stack : '',
-        )}`;
-
+  public static debug(...messages: string[]): boolean {
+    try {
+      for (const message of messages) {
+        const formattedMessage = `DEBUG: ${chalk.yellow(message)}`;
         if (this._env !== 'test') {
-          console.error(formattedMessage);
+          console.log(formattedMessage);
         }
-        await this.writeToLogFile(`ERROR KEY: ${key}\n${error.stack ? error.stack : ''}`);
-        if (exit) return process.exit(1);
-        return resolve(key);
-      } catch (error) {
-        return reject(error);
+        this.writeToLogFile(`DEBUG: ${message}`);
       }
-    });
+      return true;
+    } catch (error) {
+      this.printErrorToConsole(error);
+      return false;
+    }
+  }
+
+  public static info(...messages: string[]): boolean {
+    try {
+      for (const message of messages) {
+        const formattedMessage = `INFO: ${chalk.green(message)}`;
+        if (this._env !== 'test') {
+          console.log(formattedMessage);
+        }
+        this.writeToLogFile(`INFO: ${message}`);
+      }
+      return true;
+    } catch (error) {
+      this.printErrorToConsole(error);
+      return false;
+    }
+  }
+
+  public static warn(...messages: string[]): boolean {
+    try {
+      for (const message of messages) {
+        const formattedMessage = `WARN: ${chalk.cyanBright(message)}`;
+        if (this._env !== 'test') {
+          console.log(formattedMessage);
+        }
+        this.writeToLogFile(`WARN: ${message}`);
+      }
+      return true;
+    } catch (error) {
+      this.printErrorToConsole(error);
+      return false;
+    }
+  }
+
+  public static error(error: Error, exit: boolean = false): number {
+    try {
+      const key = Date.now();
+      const formattedMessage = `ERROR: Error Key: ${key}\n${chalk.red(error.message)}\nStack trace: ${chalk.red(
+        error.stack ? error.stack : '',
+      )}`;
+
+      if (this._env !== 'test') {
+        console.error(formattedMessage);
+      }
+      this.writeToLogFile(`ERROR KEY: ${key}\n${error.stack ? error.stack : ''}`);
+      if (exit) return process.exit(1);
+      return key;
+    } catch (error) {
+      this.printErrorToConsole(error);
+      return 0;
+    }
   }
 }
 

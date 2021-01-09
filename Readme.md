@@ -40,6 +40,10 @@ All the methods available can take variable string messages or in other words ar
 
 All the methods are asynchronous as we writing the logs to a file which is an async operation and returns a promise.
 
+**NOTE: Staring version 1.0.0 methods will no longer return promises**
+
+Instead of returning promises, if we encounter any error writing to file. We are just going to log error to console. This is because in future version of Node unhandled promise rejection will lead to Node exiting the process with non-zero error code. We don't want you to wrap every logging action with try and catch and add clutter to the code.
+
 #### **Debug**
 
 Prints **DEBUG** in front the logs. Sample output:

@@ -57,7 +57,7 @@ class SimpleLogger {
   private static logFileInit() {
     const _logName = path.join(this._logsDir, this._logName);
     try {
-      fs.appendFileSync(_logName, `\n*** New Logs Start. Created on UTC time: ${getUTCString()}***\n`);
+      fs.appendFileSync(_logName, `\n*** New Logging Session Started Created on(UTC time): ${getUTCString()}***\n`);
     } catch (error) {
       printErrorToConsole(error);
       process.exit(1);
@@ -105,35 +105,19 @@ class SimpleLogger {
     });
   }
 
-  private static writeToLogFile(message: string, isExit: boolean = false): Promise<any> {
-    return new Promise((resolve, reject) => {
-      const fullLogPath: string = this.getFullLogPath();
-      const UTCString: string = getUTCString();
+  private static writeToLogFile(message: string) {
+    const fullLogPath: string = this.getFullLogPath();
+    const UTCString: string = getUTCString();
 
-      fs.access(fullLogPath, (errorOne) => {
-        if (errorOne) {
-          printErrorToConsole(errorOne);
-
-          fs.mkdir(this._logsDir, (errorTwo) => {
-            if (errorTwo && errorTwo.errno !== -17) {
-              printErrorToConsole(errorTwo);
-              return reject(errorTwo);
-            }
-
-            fs.appendFile(this.getFullLogPath(), `${UTCString}: ${message}\n`, (errorThree) => {
-              if (errorThree) printErrorToConsole(errorThree);
-              if (isExit) process.exit(1);
-            });
-          });
-        } else {
-          fs.appendFile(this.getFullLogPath(), `${UTCString}: ${message}\n`, (errorFour) => {
-            if (errorFour) printErrorToConsole(errorFour);
-            if (isExit) process.exit(1);
-          });
-        }
-        return resolve(null);
-      });
-    });
+    try {
+      fs.accessSync(fullLogPath);
+      if (!fs.existsSync(this._logsDir)) {
+        fs.mkdirSync(this._logsDir, { recursive: true });
+      }
+      fs.appendFileSync(this.getFullLogPath(), `${UTCString}: ${message}\n`);
+    } catch (error) {
+      throw error;
+    }
   }
 
   private static getFullLogPath(): string {
@@ -142,7 +126,7 @@ class SimpleLogger {
   /**
    * All the logging functions
    */
-  public static debug(...messages: string[]): Promise<boolean | Error> {
+  public static debug(...messages: string[]) {
     return new Promise(async (resolve, reject) => {
       try {
         for (const message of messages) {

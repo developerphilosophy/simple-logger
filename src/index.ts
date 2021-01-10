@@ -172,7 +172,7 @@ class SimpleLogger {
           if (this._env !== 'test') {
             console.log(formattedMessage);
           }
-          this.writeToLogFile(`INFO: ${message}`);
+          await this.writeToLogFile(`INFO: ${message}`);
         }
         return resolve(true);
       } catch (error) {
@@ -189,11 +189,11 @@ class SimpleLogger {
           if (this._env !== 'test') {
             console.log(formattedMessage);
           }
-          this.writeToLogFile(`WARN: ${message}`);
+          await this.writeToLogFile(`WARN: ${message}`);
         }
         return resolve(true);
       } catch (error) {
-        return rejects(error);
+        return reject(error);
       }
     });
   }

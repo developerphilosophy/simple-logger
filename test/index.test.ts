@@ -41,6 +41,13 @@ describe('UNIT: Test initialization and use of variable logging methods', () => 
     expect(content.includes(message)).to.be.true;
   });
 
+  it('Should write a log message to logs', async () => {
+    const message = `${new Date()} log`;
+    SimpleLogger.log(message);
+    const content: string = fs.readFileSync(logs, 'utf-8');
+    expect(content.includes(message)).to.be.true;
+  });
+
   it('Should write a warn message to logs', async () => {
     const message = `${new Date()} warn log`;
     SimpleLogger.warn(message);
@@ -63,7 +70,12 @@ describe('UNIT: Test initialization and use of variable logging methods', () => 
     expect(fs.existsSync(logDirPath)).to.be.false;
   });
 
-  it('Should intialize logs with the provided name', () => {
+  it('Should create the logs directory and file when one of the logging method is called after pruning logs', () => {
+    SimpleLogger.log('Test dir creation');
+    expect(fs.existsSync(logDirPath)).to.be.true;
+  });
+
+  it('Should throw error if trying to initialize logs again', () => {
     try {
       SimpleLogger.initLogs();
     } catch (error) {

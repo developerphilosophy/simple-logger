@@ -4,41 +4,54 @@ Simple library to create logs
 
 ## Introduction
 
-Hi, this is a small class library to mostly write logs to file and console. I didn't want to use bulky logging libraries which is why I just created my own. The usage is very simple, import the class and initialize it and then import and use the logging functions. If you don't initiate the logger, it will use the defaults. The defaults are the following:
-
-1. Cycle time: 86400000 milliseconds or 1 day
-2. Remove time: 604800000 milliseconds or 7 days
-3. Log diretory: `./logs` i.e a new directory called logs in current directory will be created
-4. Log file name: Defaults to `sds-simple-logger.logs`
+Simple logger is a simple library used to log to console and file. The usage is very simple, import the class and initialize it. You can use various logging methods available to create logs. Please note that initialization of logger is required and will throw an error when you use one of the available logging methods without first initializing the logs. If initialization was successful, it return true else throws an error. All operation related to files ex: writing to files, creation of file are synchronous.
 
 ```ts
-import SimpleLogger from 'sds-simple-logger';
-/**
- * Intialize args:
- * 1. Cycle time in milliseconds
- * 2. Remove time in milliseconds
- * 3. Log directory path
- * 4. Log file name
- */
+import Logger from 'sds-simple-logger';
 
-SimpleLogger.initLogs(86400000, 604800000, path.join(__dirname, './logs'), 'sds-simple-logger.logs');
+// Throw error if there was problem initializing logs
+Logger.initLogs();
+
+Logger.debug('Debug log');
+Logger.info('Some info message');
+Logger.warn('Some warning message');
+Logger.error(new Error('Error message'));
 ```
 
-Once imported you can use it in any other file:
+Once imported and initialized, you can use it in any other file:
 
 ```ts
-import SimpleLogger from 'sds-simple-logger';
+import Logger from 'sds-simple-logger';
 // or
-const SimpleLogger = require('sds-simple-logger');
+const Logger = require('sds-simple-logger');
 
-SimpleLogger.log('Test logs');
+Logger.log('Test logs');
+```
+
+### Options:
+
+You can pass various options as an options object when initializing the logger. Options available:
+
+1. _cycleTime_: The time in milliseconds when a new log file should be created, defaults to 86400000 ms or 24 hrs
+2. _removeTime_: The time in milliseconds, log files older than this will be remove. It runs with the cycle time, defaults to 604800000 ms or 7 days
+3. _logsDir_: The path and name of logs directory. Defaults to creation of **logs** directory in the current directory
+4. _writeToFile_: By default all logs are written to file as well as console(logs are not written to console if **NODE_ENV** is set to **"testing"**). It takes a boolean value and can be set to **false**, if you only want to write the logs to console. It is set to **true** by default.
+
+Example:
+
+```ts
+Logger.initLogs({
+  cycleTime: 86400000,
+  removeTime: 86400000,
+  logsDir: path.join(__dirname, '../test-logs'),
+  logName: 'test.logs',
+  writeToFile: true,
+});
 ```
 
 ### Methods Available:
 
-All the methods available can take variable string messages or in other words are _variadic functions_ except the error method, which takes a error object as input. Error method also has an overload of which takes a boolean value if you to exit the process with error.
-
-All the methods are asynchronous as we writing the logs to a file which is an async operation and returns a promise.
+All the methods available can take variable string messages or in other words are _variadic functions_ except the error method, which takes only error object as input. For the error methods available you can pass a second argument i.e a boolean value of true. If you want to log the error and exit the Node process.
 
 #### **Debug**
 
@@ -49,10 +62,11 @@ Usage:
 
 ```ts
 // Signature of function
-// (...messages: string[]): Promise<boolean | Error>
+// (...messages: string[])
+// Throw error if there was problem writing to logs
 
-SimpleLogger.debug('Debug test');
-SimpleLogger.debug('Debug test one', 'Debug test two', 'Debug test three');
+Logger.debug('Debug test');
+Logger.debug('Debug test one', 'Debug test two', 'Debug test three');
 ```
 
 #### **Info**
@@ -64,10 +78,27 @@ Usage:
 
 ```ts
 // Signature of function
-// (...messages: string[]): Promise<boolean | Error>
+// (...messages: string[])
+// Throw error if there was problem writing to logs
 
-SimpleLogger.info('Info test');
-SimpleLogger.info('Info test one', 'Info test two', 'Info test three');
+Logger.info('Info test');
+Logger.info('Info test one', 'Info test two', 'Info test three');
+```
+
+#### **Log**
+
+Prints **LOG** in front the logs. Sample output:
+`Tue, 05 Jan 2021 06:13:18 GMT: INFO: Info output test`
+
+Usage:
+
+```ts
+// Signature of function
+// (...messages: string[])
+// Throw error if there was problem writing to logs
+
+Logger.log('Log test');
+Logger.log('Log test one', 'Log test two', 'Log test three');
 ```
 
 #### **Warn**
@@ -79,10 +110,11 @@ Usage:
 
 ```ts
 // Signature
-// (...messages: string[]): Promise<boolean | Error>
+// (...messages: string[])
+// Throw error if there was problem writing to logs
 
-SimpleLogger.warn('Warn test');
-SimpleLogger.warn('Warn test one', 'Warn test two', 'Warn test three');
+Logger.warn('Warn test');
+Logger.warn('Warn test one', 'Warn test two', 'Warn test three');
 ```
 
 #### **Error**
@@ -108,8 +140,20 @@ Usage:
 
 ```ts
 // Signature
-// (error: Error, exit: boolean = false): Promise<number | Error>;
+// (error: Error, exit: boolean = false): number;
+// Throw error if there was problem writing to logs
 
-SimpleLogger.error(new Error('Error test'));
-SimpleLogger.error(new Error('Error test'), true);
+Logger.error(new Error('Error test'));
+// Exit the node process with non-zero exit code
+Logger.error(new Error('Error test'), true);
+```
+
+#### **Prune Logs**
+
+To prune logs i.e deleting the log directory and its content. You can use the _pruneLogs_ method available. Method returns _true_ if successfully deleted.
+
+The next time you use a logging method available. The logs directory will be created according to the options passed in the _initLogs_ function.
+
+```ts
+Logger.pruneLogs();
 ```

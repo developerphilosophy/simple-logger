@@ -22,7 +22,7 @@ class SimpleLogger {
   private static _writeToFile: boolean = true;
   private static _logsDirExists: boolean = false;
 
-  public static initLogs(options: LogOptions = {}) {
+  public static initLogs(options: LogOptions = {}): boolean {
     if (this._isInitialized) throw LogsAlreadyInitializedError;
     /**
      * 1. Set the time
@@ -51,12 +51,13 @@ class SimpleLogger {
 
     this.cycleLogs();
     this._isInitialized = true;
+    return true;
   }
 
   /**
    * Create the logs directory
    */
-  private static createLogDir() {
+  private static createLogDir(): void {
     try {
       if (!fs.existsSync(this._logsDir)) {
         // If log directory does not exists, create one
@@ -68,7 +69,7 @@ class SimpleLogger {
     }
   }
 
-  private static logFileInit() {
+  private static logFileInit(): void {
     const logName = path.join(this._logsDir, this._logName);
     try {
       fs.appendFileSync(logName, `\n*** New Logging Session Started Created on(UTC time): ${getUTCString()}***\n`);
@@ -78,7 +79,7 @@ class SimpleLogger {
     }
   }
 
-  private static cycleLogs() {
+  private static cycleLogs(): void {
     this.logFileInit();
     setInterval(() => {
       let date = new Date().toLocaleDateString();
@@ -98,7 +99,7 @@ class SimpleLogger {
     // For 24 hours: 86400000
   }
 
-  private static removeOldLogs() {
+  private static removeOldLogs(): void {
     fs.readdir(this._logsDir, (errorOne, files) => {
       if (errorOne) printErrorToConsole(errorOne);
       files.forEach((file, index) => {
@@ -119,7 +120,7 @@ class SimpleLogger {
     });
   }
 
-  public static pruneLogs() {
+  public static pruneLogs(): boolean {
     if (!this._isInitialized) throw LogsNotInitaizedError;
 
     try {
@@ -131,12 +132,13 @@ class SimpleLogger {
       // 2. Remove the directory
       fs.rmdirSync(this._logsDir);
       this._logsDirExists = false;
+      return true;
     } catch (error) {
       throw error;
     }
   }
 
-  private static writeToLogFile(message: string) {
+  private static writeToLogFile(message: string): void {
     const fullLogPath: string = this.getFullLogPath();
     const UTCString: string = getUTCString();
 
@@ -156,7 +158,7 @@ class SimpleLogger {
   /**
    * All the logging functions
    */
-  public static debug(...messages: string[]) {
+  public static debug(...messages: string[]): void {
     if (!this._isInitialized) throw LogsNotInitaizedError;
 
     try {
@@ -171,7 +173,7 @@ class SimpleLogger {
     }
   }
 
-  public static info(...messages: string[]) {
+  public static info(...messages: string[]): void {
     if (!this._isInitialized) throw LogsNotInitaizedError;
     try {
       for (const message of messages) {
@@ -184,13 +186,27 @@ class SimpleLogger {
       throw error;
     }
   }
+  public static log(...messages: string[]): void {
+    if (!this._isInitialized) throw LogsNotInitaizedError;
+    try {
+      for (const message of messages) {
+        const formattedMessage = `LOG: ${chalk.green(message)}`;
+        if (this._env !== 'test') console.log(formattedMessage);
 
-  public static warn(...messages: string[]) {
+        if (this._writeToFile) this.writeToLogFile(`LOG: ${message}`);
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  public static warn(...messages: string[]): void {
     if (!this._isInitialized) throw LogsNotInitaizedError;
     try {
       for (const message of messages) {
         const formattedMessage = `WARN: ${chalk.cyanBright(message)}`;
         if (this._env !== 'test') console.log(formattedMessage);
+
         if (this._writeToFile) this.writeToLogFile(`WARN: ${message}`);
       }
     } catch (error) {

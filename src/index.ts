@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 import { printErrorToConsole, getUTCString } from './lib/utilFunctions';
-import { LogsNotInitaizedError } from './lib/errors';
+import { LogsNotInitaizedError, LogsAlreadyInitializedError } from './lib/errors';
 
 interface LogOptions {
   cycleTime?: number;
@@ -20,8 +20,10 @@ class SimpleLogger {
   private static _cycleTime: number = 86400000;
   private static _removeTime: number = 604800000;
   private static _writeToFile: boolean = true;
+  private static _logsDirExists: boolean = false;
 
   public static initLogs(options: LogOptions = {}) {
+    if (this._isInitialized) throw LogsAlreadyInitializedError;
     /**
      * 1. Set the time
      * 2. Initialize the log name
@@ -37,15 +39,16 @@ class SimpleLogger {
       console.log(chalk.yellow('By convention it is always recommeded to add .logs extension to log files'));
     }
 
-    if (!this._isInitialized) {
-      try {
+    try {
+      if (!this._isInitialized) {
         this.createLogDir();
-      } catch (error) {
-        printErrorToConsole(error);
-        throw error;
       }
+      this.logFileInit();
+    } catch (error) {
+      printErrorToConsole(error);
+      throw error;
     }
-    this.logFileInit();
+
     this.cycleLogs();
     this._isInitialized = true;
   }
@@ -54,20 +57,21 @@ class SimpleLogger {
    * Create the logs directory
    */
   private static createLogDir() {
-    if (!fs.existsSync(this._logsDir)) {
-      // Check to see if logs directory already exists or not
-      try {
+    try {
+      if (!fs.existsSync(this._logsDir)) {
+        // If log directory does not exists, create one
         fs.mkdirSync(this._logsDir);
-      } catch (error) {
-        throw error;
+        this._logsDirExists = true;
       }
+    } catch (error) {
+      throw error;
     }
   }
 
   private static logFileInit() {
-    const _logName = path.join(this._logsDir, this._logName);
+    const logName = path.join(this._logsDir, this._logName);
     try {
-      fs.appendFileSync(_logName, `\n*** New Logging Session Started Created on(UTC time): ${getUTCString()}***\n`);
+      fs.appendFileSync(logName, `\n*** New Logging Session Started Created on(UTC time): ${getUTCString()}***\n`);
     } catch (error) {
       printErrorToConsole(error);
       throw error;
@@ -81,14 +85,14 @@ class SimpleLogger {
       let time = new Date().toLocaleTimeString();
       time = time.replace(/ /g, '').replace(/:/g, '');
       date = date.replace(/\s+|[,\/]/g, '');
-      fs.rename(
-        path.join(this._logsDir, `${this._logName}`),
-        path.join(this._logsDir, `${this._logName}.${date}.${time}`),
-        (error) => {
-          if (error) printErrorToConsole(error);
-          this.logFileInit();
-        },
-      );
+
+      const oldPath = path.join(this._logsDir, `${this._logName}`);
+      const newPath = path.join(this._logsDir, `${this._logName}.${date}.${time}`);
+
+      fs.rename(oldPath, newPath, (error) => {
+        if (error) printErrorToConsole(error);
+        this.logFileInit();
+      });
       this.removeOldLogs();
     }, this._cycleTime);
     // For 24 hours: 86400000
@@ -115,13 +119,29 @@ class SimpleLogger {
     });
   }
 
+  public static pruneLogs() {
+    if (!this._isInitialized) throw LogsNotInitaizedError;
+
+    try {
+      // 1. Delete the content of directory
+      const dirContent = fs.readdirSync(this._logsDir);
+      dirContent.forEach((file) => {
+        fs.unlinkSync(path.join(this._logsDir, file));
+      });
+      // 2. Remove the directory
+      fs.rmdirSync(this._logsDir);
+      this._logsDirExists = false;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   private static writeToLogFile(message: string) {
     const fullLogPath: string = this.getFullLogPath();
     const UTCString: string = getUTCString();
 
     try {
-      fs.accessSync(fullLogPath);
-      if (!fs.existsSync(this._logsDir)) {
+      if (!this._logsDirExists || !fs.existsSync(this._logsDir)) {
         fs.mkdirSync(this._logsDir, { recursive: true });
       }
       fs.appendFileSync(this.getFullLogPath(), `${UTCString}: ${message}\n`);

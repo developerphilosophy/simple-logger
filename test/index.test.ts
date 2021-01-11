@@ -2,16 +2,27 @@ import { expect } from 'chai';
 import SimpleLogger from '../src/index';
 import * as path from 'path';
 import * as fs from 'fs';
-const fsPromises = fs.promises;
 
-describe('UNIT: Test import and initialization', () => {
-  const logFileName = 'sds-simple-logger.logs';
-  const logDirPath = path.join(process.env.PWD as string, 'logs');
-  const logs = `${logDirPath}/${logFileName}`;
+describe('UNIT: Test initialization and use of variable logging methods', () => {
+  let logFileName = 'sds-simple-logger.logs';
+  let logDirPath = path.join(process.env.PWD as string, 'logs');
+  let logs = `${logDirPath}/${logFileName}`;
+
+  function initLogs() {
+    SimpleLogger.initLogs();
+  }
+
+  it('Should throw an error if logs not initialized before calling log methods', () => {
+    try {
+      SimpleLogger.debug('This is a test');
+    } catch (error) {
+      expect(error).to.exist;
+      expect(error.message).to.be.equal('Logs not initialized. Need to initialize before using');
+    }
+  });
 
   it('Should initialize logs directory and path', () => {
-    SimpleLogger.initLogs();
-    console.log('Logs full path: ', logs);
+    initLogs();
     expect(fs.existsSync(logDirPath)).to.be.true;
     expect(fs.existsSync(logs)).to.be.true;
   });
@@ -45,5 +56,18 @@ describe('UNIT: Test import and initialization', () => {
     expect(content.includes(message)).to.be.true;
     expect(content.includes(errorKey.toString())).to.be.true;
     expect(errorKey).to.be.greaterThan(0);
+  });
+
+  it('Should prune logs folder', () => {
+    SimpleLogger.pruneLogs();
+    expect(fs.existsSync(logDirPath)).to.be.false;
+  });
+
+  it('Should intialize logs with the provided name', () => {
+    try {
+      SimpleLogger.initLogs();
+    } catch (error) {
+      expect(error.message).to.be.equal('Logs already initialized, cannot initialize again');
+    }
   });
 });

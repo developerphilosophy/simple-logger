@@ -4,12 +4,12 @@ Simple library to create logs
 
 ## Introduction
 
-Simple logger is a simple library used to log to console and file. The usage is very simple, import the class and initialize it. You can use various logging methods available to create logs. Please note that initialization of logger is required and will throw an error when you use one of the available logging methods without first initializing the logs. If initialization was successful, it return true else throws an error. All operation related to files ex: writing to files, creation of file are synchronous.
+Simple logger is a simple library used to log to console and file. The usage is very simple, import the class and initialize it. You can use various logging methods available to create logs. Please note that initialization of logger is required and will throw an error when you use one of the available logging methods without first initializing the logs. If initialization was successful, it return **true** else throws an error. All operation related to files ex: writing to files, creation of file are synchronous.
 
 ```ts
 import Logger from 'sds-simple-logger';
 
-// Throw error if there was problem initializing logs
+// Throw error if there was problem initializing logs using defaults
 Logger.initLogs();
 
 Logger.debug('Debug log');
@@ -32,8 +32,8 @@ Logger.log('Test logs');
 
 You can pass various options as an options object when initializing the logger. Options available:
 
-1. _cycleTime_: The time in milliseconds when a new log file should be created, defaults to 86400000 ms or 24 hrs
-2. _removeTime_: The time in milliseconds, log files older than this will be remove. It runs with the cycle time, defaults to 604800000 ms or 7 days
+1. _cycleTime_: The time in milliseconds after which a new log file should be created, defaults to 86400000 ms or 24 hrs
+2. _removeTime_: The time in milliseconds, log files older than this will be removed. It runs with the cycle time, defaults to 604800000 ms or 7 days
 3. _logsDir_: The path and name of logs directory. Defaults to creation of **logs** directory in the current directory
 4. _writeToFile_: By default all logs are written to file as well as console(logs are not written to console if **NODE_ENV** is set to **"testing"**). It takes a boolean value and can be set to **false**, if you only want to write the logs to console. It is set to **true** by default.
 

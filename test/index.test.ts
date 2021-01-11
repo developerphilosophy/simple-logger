@@ -2,6 +2,9 @@ import { expect } from 'chai';
 import SimpleLogger from '../src/index';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as httpMocks from 'node-mocks-http';
+import * as sinon from 'sinon';
+import { url } from 'inspector';
 
 describe('UNIT: Test initialization and use of variable logging methods', () => {
   let logFileName = 'sds-simple-logger.logs';
@@ -81,5 +84,30 @@ describe('UNIT: Test initialization and use of variable logging methods', () => 
     } catch (error) {
       expect(error.message).to.be.equal('Logs already initialized, cannot initialize again');
     }
+  });
+});
+
+describe('UNIT: Express logger middleware test', () => {
+  let logFileName = 'sds-simple-logger.logs';
+  let logDirPath = path.join(process.env.PWD as string, 'logs');
+  let logs = `${logDirPath}/${logFileName}`;
+
+  function getRequest() {
+    return httpMocks.createRequest({
+      url: 'test.com',
+    });
+  }
+
+  function getResponse() {
+    return httpMocks.createResponse();
+  }
+
+  it('Should log the request', () => {
+    const req = getRequest();
+    const res = getResponse();
+    const nxt = sinon.spy();
+    SimpleLogger.expressReqLogger()(req, res, nxt);
+    const content: string = fs.readFileSync(logs, 'utf-8');
+    expect(content.includes('{"method":"GET","url":"test.com","ip":null,"user_agent":null,"params":{}}')).to.be.true;
   });
 });

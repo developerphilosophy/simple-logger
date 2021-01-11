@@ -3,6 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { printErrorToConsole, getUTCString } from './lib/utilFunctions';
 import { LogsNotInitaizedError, LogsAlreadyInitializedError } from './lib/errors';
+import { Request, Response, NextFunction } from 'express';
+import { nextTick } from 'process';
 
 interface LogOptions {
   cycleTime?: number;
@@ -233,6 +235,29 @@ class SimpleLogger {
     } catch (error) {
       throw error;
     }
+  }
+
+  public static expressReqLogger(writeToFile: boolean = true) {
+    return (req: Request, res: Response, nxt: NextFunction) => {
+      const method = req.method || null;
+      const url = req.originalUrl || null;
+      const ip = req.ip || null;
+      const user_agent = req.get('user-agent') || null;
+      const params = req.params || null;
+
+      const dataObject = { method, url, ip, user_agent, params };
+
+      if (!this._isInitialized) throw LogsNotInitaizedError;
+
+      try {
+        const formattedMessage = `REQ LOGS: ${JSON.stringify(dataObject)}`;
+        if (this._env !== 'test') console.log(formattedMessage);
+        if (writeToFile) this.writeToLogFile(formattedMessage);
+        return nxt();
+      } catch (error) {
+        return nxt(error);
+      }
+    };
   }
 }
 

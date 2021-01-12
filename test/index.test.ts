@@ -114,7 +114,11 @@ describe('UNIT: Express logger middleware test', () => {
     const req = getRequest();
     const res = getResponse();
     const nxt = sinon.spy();
-    SimpleLogger.expressReqLogger()(req, res, nxt);
+    SimpleLogger.expressReqLogs({
+      writeToFile: false,
+      hideBodyFields: ['password'],
+      hideHeaders: ['token'],
+    })(req, res, nxt);
     const content: string = fs.readFileSync(logs, 'utf-8');
     expect(content.includes('"method":"GET","url":"test.com"')).to.be.true;
   });

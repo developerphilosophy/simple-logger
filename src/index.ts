@@ -245,7 +245,7 @@ class SimpleLogger {
     }
   }
 
-  public static expressReqLogger(opts: ReqMidOptions = {}) {
+  public static expressReqLogs(opts: ReqMidOptions = {}) {
     return (req: Request, res: Response, nxt: NextFunction) => {
       const { headers, httpVersion, method, socket, url, body, params } = req;
       const { remoteAddress, remoteFamily } = socket;
@@ -281,7 +281,7 @@ class SimpleLogger {
       }
 
       const dataObject = {
-        timestamp: Date.now(),
+        timestamp: getUTCString(),
         request: {
           method: requestMethod,
           url: requestUrl,
@@ -299,7 +299,8 @@ class SimpleLogger {
 
       try {
         const formattedMessage = `REQ LOGS: ${chalk.green(JSON.stringify(dataObject))}`;
-        if (this._env !== 'test') console.log(formattedMessage);
+        // if (this._env !== 'test')
+        console.log(formattedMessage);
         if (writeToFile) this.writeToLogFile(formattedMessage);
         return nxt();
       } catch (error) {

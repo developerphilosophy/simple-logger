@@ -157,3 +157,41 @@ The next time you use a logging method available. The logs directory will be cre
 ```ts
 Logger.pruneLogs();
 ```
+
+### Express Request Logger Middelware
+
+A small middleware function to logs Express request. Pass it before your routes to log all incoming requests. If value not present it will write null to logs.
+
+```ts
+// Get the request logging middleware
+const loggerMiddleware = Logger.expressReqLogs();
+
+// Use the middleware with express app
+app.use(loggerMiddleware);
+
+// Output to console:
+REQ LOGS: {"timestamp":"Tue, 12 Jan 2021 06:30:02 GMT","request":{"method":"GET","url":"test.com","clientIp":null,"ipFamily":null,"userAgent":null,"httpVersion":null,"params":{},"headers":{"token":"Test","random":"Random"},"body":{"username":"Test","password":"Test"}}}
+```
+
+#### Middleware options:
+
+You can pass a options object when calling the **_expressReqLogs_** to configure the logger middleware. Avaliable options are:
+
+1. **_writeToFile_**: Boolean value, set to true by default
+2. **_hideBodyFields_**: Array of fields that you want to hide on the the request body. Hidden fields/keys and respective values won't be printed in logs
+3. **_hideHeaders_**: Arrays of headers you want to hide
+
+```ts
+// Call with options
+Logger.expressReqLogs({
+  writeToFile: false,
+  hideBodyFields: ['password'],
+  hideHeaders: ['token'],
+});
+
+// Use the middleware with express app
+app.use(loggerMiddleware);
+
+// Sample output:
+REQ LOGS: {"timestamp":"Tue, 12 Jan 2021 06:35:23 GMT","request":{"method":"GET","url":"test.com","clientIp":null,"ipFamily":null,"userAgent":null,"httpVersion":null,"params":{},"headers":{"random":"Random"},"body":{"username":"Test"}}}
+```

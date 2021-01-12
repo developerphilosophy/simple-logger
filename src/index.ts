@@ -3,8 +3,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { printErrorToConsole, getUTCString } from './lib/utilFunctions';
 import { LogsNotInitaizedError, LogsAlreadyInitializedError } from './lib/errors';
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, response } from 'express';
 import { nextTick } from 'process';
+import { EROFS } from 'constants';
+import { Socket } from 'dgram';
 
 interface LogOptions {
   cycleTime?: number;
@@ -12,6 +14,12 @@ interface LogOptions {
   logsDir?: string;
   logName?: string;
   writeToFile?: boolean;
+}
+
+interface ReqMidOptions {
+  writeToFile?: boolean;
+  hideBodyFields?: string[];
+  hideHeaders?: string[];
 }
 
 class SimpleLogger {
@@ -237,20 +245,60 @@ class SimpleLogger {
     }
   }
 
-  public static expressReqLogger(writeToFile: boolean = true) {
+  public static expressReqLogger(opts: ReqMidOptions = {}) {
     return (req: Request, res: Response, nxt: NextFunction) => {
-      const method = req.method || null;
-      const url = req.originalUrl || null;
-      const ip = req.ip || null;
-      const user_agent = req.get('user-agent') || null;
-      const params = req.params || null;
+      const { headers, httpVersion, method, socket, url, body, params } = req;
+      const { remoteAddress, remoteFamily } = socket;
 
-      const dataObject = { method, url, ip, user_agent, params };
+      const requestMethod = method || null;
+      const requestUrl = url || null;
+      const requestIpAddress = remoteAddress || null;
+      const requestUserAgent = req.get('user-agent') || null;
+      const requestBody = req.body || null;
+      const requestParams = req.params || null;
+      const requestHeaders = headers || null;
+      const requestHttpVersion = httpVersion || null;
+      const requestRemoteFamily = remoteFamily || null;
+
+      let writeToFile: boolean = true;
+      let hideBodyFields: string[] = [];
+      let hideHeaders: string[] = [];
+
+      if (opts && opts.writeToFile) writeToFile = opts.writeToFile;
+      if (opts && opts.hideBodyFields) hideBodyFields = opts.hideBodyFields;
+      if (opts && opts.hideHeaders) hideHeaders = opts.hideHeaders;
+
+      if (hideBodyFields.length > 0) {
+        hideBodyFields.forEach((field) => {
+          delete body[field];
+        });
+      }
+
+      if (hideHeaders.length > 0) {
+        hideHeaders.forEach((field) => {
+          delete requestHeaders[field];
+        });
+      }
+
+      const dataObject = {
+        timestamp: Date.now(),
+        request: {
+          method: requestMethod,
+          url: requestUrl,
+          clientIp: requestIpAddress,
+          ipFamily: requestRemoteFamily,
+          userAgent: requestUserAgent,
+          httpVersion: requestHttpVersion,
+          params: requestParams,
+          headers: requestHeaders,
+          body: requestBody,
+        },
+      };
 
       if (!this._isInitialized) throw LogsNotInitaizedError;
 
       try {
-        const formattedMessage = `REQ LOGS: ${JSON.stringify(dataObject)}`;
+        const formattedMessage = `REQ LOGS: ${chalk.green(JSON.stringify(dataObject))}`;
         if (this._env !== 'test') console.log(formattedMessage);
         if (writeToFile) this.writeToLogFile(formattedMessage);
         return nxt();

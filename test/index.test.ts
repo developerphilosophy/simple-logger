@@ -95,6 +95,14 @@ describe('UNIT: Express logger middleware test', () => {
   function getRequest() {
     return httpMocks.createRequest({
       url: 'test.com',
+      body: {
+        username: 'Test',
+        password: 'Test',
+      },
+      headers: {
+        token: 'Test',
+        random: 'Random',
+      },
     });
   }
 
@@ -108,6 +116,6 @@ describe('UNIT: Express logger middleware test', () => {
     const nxt = sinon.spy();
     SimpleLogger.expressReqLogger()(req, res, nxt);
     const content: string = fs.readFileSync(logs, 'utf-8');
-    expect(content.includes('{"method":"GET","url":"test.com","ip":null,"user_agent":null,"params":{}}')).to.be.true;
+    expect(content.includes('"method":"GET","url":"test.com"')).to.be.true;
   });
 });

@@ -174,7 +174,7 @@ class SimpleLogger {
     try {
       for (const message of messages) {
         const formattedMessage = `DEBUG: ${chalk.yellow(message)}`;
-        if (this._env !== 'test') console.log(formattedMessage);
+        console.log(formattedMessage);
 
         if (this._writeToFile) this.writeToLogFile(`DEBUG: ${message}`);
       }
@@ -188,7 +188,7 @@ class SimpleLogger {
     try {
       for (const message of messages) {
         const formattedMessage = `INFO: ${chalk.green(message)}`;
-        if (this._env !== 'test') console.log(formattedMessage);
+        console.log(formattedMessage);
 
         if (this._writeToFile) this.writeToLogFile(`INFO: ${message}`);
       }
@@ -201,7 +201,7 @@ class SimpleLogger {
     try {
       for (const message of messages) {
         const formattedMessage = `LOG: ${chalk.green(message)}`;
-        if (this._env !== 'test') console.log(formattedMessage);
+        console.log(formattedMessage);
 
         if (this._writeToFile) this.writeToLogFile(`LOG: ${message}`);
       }
@@ -215,7 +215,7 @@ class SimpleLogger {
     try {
       for (const message of messages) {
         const formattedMessage = `WARN: ${chalk.cyanBright(message)}`;
-        if (this._env !== 'test') console.log(formattedMessage);
+        console.log(formattedMessage);
 
         if (this._writeToFile) this.writeToLogFile(`WARN: ${message}`);
       }
@@ -232,7 +232,7 @@ class SimpleLogger {
         error.stack ? error.stack : '',
       )}`;
 
-      if (this._env !== 'test') console.error(formattedMessage);
+      console.error(formattedMessage);
 
       if (this._writeToFile) this.writeToLogFile(`ERROR KEY: ${key}\n${error.stack ? error.stack : ''}`);
       if (exit) {

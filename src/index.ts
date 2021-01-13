@@ -1,26 +1,12 @@
 import chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
-import { printErrorToConsole, getUTCString } from './lib/utilFunctions';
+import { printErrorToConsole, getUTCString, printToConsole } from './lib/utilFunctions';
 import { LogsNotInitaizedError, LogsAlreadyInitializedError } from './lib/errors';
-import { Request, Response, NextFunction, response } from 'express';
-import { nextTick } from 'process';
-import { EROFS } from 'constants';
-import { Socket } from 'dgram';
-
-interface LogOptions {
-  cycleTime?: number;
-  removeTime?: number;
-  logsDir?: string;
-  logName?: string;
-  writeToFile?: boolean;
-}
-
-interface ReqMidOptions {
-  writeToFile?: boolean;
-  hideBodyFields?: string[];
-  hideHeaders?: string[];
-}
+import { Request, Response, NextFunction } from 'express';
+import { LogType } from './enums/logType';
+import LogOptions from './interfaces/logOptions';
+import ReqMidOptions from './interfaces/reqMidOptions';
 
 class SimpleLogger {
   private static _logName: string = 'sds-simple-logger.logs';
@@ -31,6 +17,7 @@ class SimpleLogger {
   private static _removeTime: number = 604800000;
   private static _writeToFile: boolean = true;
   private static _logsDirExists: boolean = false;
+  private static _json: boolean = true;
 
   public static initLogs(options: LogOptions = {}): boolean {
     if (this._isInitialized) throw LogsAlreadyInitializedError;
@@ -44,6 +31,7 @@ class SimpleLogger {
     if (options && options.logsDir) this._logsDir = options.logsDir;
     if (options && options.logName) this._logName = options.logName;
     if (options && options.writeToFile) this._writeToFile = options.writeToFile;
+    if (options && options.json) this._json = options.json;
 
     if (!this._logName.includes('.logs')) {
       console.log(chalk.yellow('By convention it is always recommeded to add .logs extension to log files'));
@@ -148,7 +136,7 @@ class SimpleLogger {
     }
   }
 
-  private static writeToLogFile(message: string): void {
+  private static writeToLogFile(message: any): void {
     const fullLogPath: string = this.getFullLogPath();
     const UTCString: string = getUTCString();
 
@@ -156,7 +144,7 @@ class SimpleLogger {
       if (!this._logsDirExists || !fs.existsSync(this._logsDir)) {
         fs.mkdirSync(this._logsDir, { recursive: true });
       }
-      fs.appendFileSync(this.getFullLogPath(), `${UTCString}: ${message}\n`);
+      fs.appendFileSync(this.getFullLogPath(), `${JSON.stringify(message, null, 2)},\n`);
     } catch (error) {
       throw error;
     }
@@ -173,10 +161,9 @@ class SimpleLogger {
 
     try {
       for (const message of messages) {
-        const formattedMessage = `DEBUG: ${chalk.yellow(message)}`;
-        console.log(formattedMessage);
+        const logObject = printToConsole({ logType: LogType.DEBUG, message, json: this._json });
 
-        if (this._writeToFile) this.writeToLogFile(`DEBUG: ${message}`);
+        if (this._writeToFile) this.writeToLogFile(logObject);
       }
     } catch (error) {
       throw error;
@@ -187,10 +174,9 @@ class SimpleLogger {
     if (!this._isInitialized) throw LogsNotInitaizedError;
     try {
       for (const message of messages) {
-        const formattedMessage = `INFO: ${chalk.green(message)}`;
-        console.log(formattedMessage);
+        const logObject = printToConsole({ logType: LogType.INFO, message, json: this._json });
 
-        if (this._writeToFile) this.writeToLogFile(`INFO: ${message}`);
+        if (this._writeToFile) this.writeToLogFile(logObject);
       }
     } catch (error) {
       throw error;
@@ -200,10 +186,9 @@ class SimpleLogger {
     if (!this._isInitialized) throw LogsNotInitaizedError;
     try {
       for (const message of messages) {
-        const formattedMessage = `LOG: ${chalk.green(message)}`;
-        console.log(formattedMessage);
+        const logObject = printToConsole({ logType: LogType.LOG, message, json: this._json });
 
-        if (this._writeToFile) this.writeToLogFile(`LOG: ${message}`);
+        if (this._writeToFile) this.writeToLogFile(logObject);
       }
     } catch (error) {
       throw error;
@@ -214,10 +199,9 @@ class SimpleLogger {
     if (!this._isInitialized) throw LogsNotInitaizedError;
     try {
       for (const message of messages) {
-        const formattedMessage = `WARN: ${chalk.cyanBright(message)}`;
-        console.log(formattedMessage);
+        const logObject = printToConsole({ logType: LogType.WARN, message, json: this._json });
 
-        if (this._writeToFile) this.writeToLogFile(`WARN: ${message}`);
+        if (this._writeToFile) this.writeToLogFile(logObject);
       }
     } catch (error) {
       throw error;
@@ -226,15 +210,16 @@ class SimpleLogger {
 
   public static error(error: Error, exit: boolean = false): number {
     if (!this._isInitialized) throw LogsNotInitaizedError;
+    let key: number;
     try {
-      const key = Date.now();
-      const formattedMessage = `ERROR: Error Key: ${key}\n${chalk.red(error.message)}\nStack trace: ${chalk.red(
-        error.stack ? error.stack : '',
-      )}`;
-
-      console.error(formattedMessage);
-
-      if (this._writeToFile) this.writeToLogFile(`ERROR KEY: ${key}\n${error.stack ? error.stack : ''}`);
+      const logObject = printToConsole({
+        logType: LogType.ERROR,
+        message: error.message,
+        error: error,
+        json: this._json,
+      });
+      key = logObject.errorKey;
+      if (this._writeToFile) this.writeToLogFile(logObject);
       if (exit) {
         return process.exit(1);
       } else {
@@ -263,10 +248,12 @@ class SimpleLogger {
       let writeToFile: boolean = true;
       let hideBodyFields: string[] = [];
       let hideHeaders: string[] = [];
+      let json: boolean = true;
 
       if (opts && opts.writeToFile) writeToFile = opts.writeToFile;
       if (opts && opts.hideBodyFields) hideBodyFields = opts.hideBodyFields;
       if (opts && opts.hideHeaders) hideHeaders = opts.hideHeaders;
+      if (opts && opts.json) json = opts.json;
 
       if (hideBodyFields.length > 0) {
         hideBodyFields.forEach((field) => {
@@ -282,26 +269,23 @@ class SimpleLogger {
 
       const dataObject = {
         timestamp: getUTCString(),
-        request: {
-          method: requestMethod,
-          url: requestUrl,
-          clientIp: requestIpAddress,
-          ipFamily: requestRemoteFamily,
-          userAgent: requestUserAgent,
-          httpVersion: requestHttpVersion,
-          params: requestParams,
-          headers: requestHeaders,
-          body: requestBody,
-        },
+        type: LogType.REQUEST,
+        method: requestMethod,
+        url: requestUrl,
+        clientIp: requestIpAddress,
+        ipFamily: requestRemoteFamily,
+        userAgent: requestUserAgent,
+        httpVersion: requestHttpVersion,
+        params: requestParams,
+        headers: requestHeaders,
+        body: requestBody,
       };
 
       if (!this._isInitialized) throw LogsNotInitaizedError;
 
       try {
-        const formattedMessage = `REQ LOGS: ${chalk.green(JSON.stringify(dataObject))}`;
-        // if (this._env !== 'test')
-        console.log(formattedMessage);
-        if (writeToFile) this.writeToLogFile(formattedMessage);
+        printToConsole({ logType: LogType.REQUEST, dataObject, json });
+        if (writeToFile) this.writeToLogFile(dataObject);
         return nxt();
       } catch (error) {
         return nxt(error);

@@ -120,6 +120,6 @@ describe('UNIT: Express logger middleware test', () => {
       hideHeaders: ['token'],
     })(req, res, nxt);
     const content: string = fs.readFileSync(logs, 'utf-8');
-    expect(content.includes('"method":"GET","url":"test.com"')).to.be.true;
+    expect(content.includes(`"type": "REQUEST"`)).to.be.true;
   });
 });

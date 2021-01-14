@@ -4,7 +4,6 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as httpMocks from 'node-mocks-http';
 import * as sinon from 'sinon';
-import { url } from 'inspector';
 
 describe('UNIT: Test initialization and use of variable logging methods', () => {
   let logFileName = 'sds-simple-logger.logs';
@@ -115,7 +114,6 @@ describe('UNIT: Express logger middleware test', () => {
     const res = getResponse();
     const nxt = sinon.spy();
     SimpleLogger.expressReqLogs({
-      writeToFile: false,
       hideBodyFields: ['password'],
       hideHeaders: ['token'],
     })(req, res, nxt);

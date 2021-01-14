@@ -7,6 +7,7 @@ import { Request, Response, NextFunction } from 'express';
 import { LogType } from './enums/logType';
 import LogOptions from './interfaces/logOptions';
 import ReqMidOptions from './interfaces/reqMidOptions';
+import ReqLogObject from './interfaces/reqLogObject';
 
 class SimpleLogger {
   private static _logName: string = 'sds-simple-logger.logs';
@@ -26,12 +27,12 @@ class SimpleLogger {
      * 2. Initialize the log name
      * 3. Create the logs directory
      */
-    if (options && options.cycleTime) this._cycleTime = options.cycleTime;
-    if (options && options.removeTime) this._removeTime = options.removeTime;
-    if (options && options.logsDir) this._logsDir = options.logsDir;
-    if (options && options.logName) this._logName = options.logName;
-    if (options && options.writeToFile) this._writeToFile = options.writeToFile;
-    if (options && options.json) this._json = options.json;
+    if (typeof options.cycleTime !== 'undefined') this._cycleTime = options.cycleTime;
+    if (typeof options.removeTime !== 'undefined') this._removeTime = options.removeTime;
+    if (typeof options.logsDir !== 'undefined') this._logsDir = options.logsDir;
+    if (typeof options.logName !== 'undefined') this._logName = options.logName;
+    if (typeof options.writeToFile !== 'undefined') this._writeToFile = options.writeToFile;
+    if (typeof options.json !== 'undefined') this._json = options.json;
 
     if (!this._logName.includes('.logs')) {
       console.log(chalk.yellow('By convention it is always recommeded to add .logs extension to log files'));
@@ -136,7 +137,7 @@ class SimpleLogger {
     }
   }
 
-  private static writeToLogFile(message: any): void {
+  private static writeToLogFile(message: any, json: boolean = true): void {
     const fullLogPath: string = this.getFullLogPath();
     const UTCString: string = getUTCString();
 
@@ -144,7 +145,11 @@ class SimpleLogger {
       if (!this._logsDirExists || !fs.existsSync(this._logsDir)) {
         fs.mkdirSync(this._logsDir, { recursive: true });
       }
-      fs.appendFileSync(this.getFullLogPath(), `${JSON.stringify(message, null, 2)},\n`);
+      if (json) {
+        fs.appendFileSync(this.getFullLogPath(), `${JSON.stringify(message, null, 2)},\n`);
+      } else {
+        fs.appendFileSync(this.getFullLogPath(), `${message}\n`);
+      }
     } catch (error) {
       throw error;
     }
@@ -163,7 +168,7 @@ class SimpleLogger {
       for (const message of messages) {
         const logObject = printToConsole({ logType: LogType.DEBUG, message, json: this._json });
 
-        if (this._writeToFile) this.writeToLogFile(logObject);
+        if (this._writeToFile) this.writeToLogFile(logObject, this._json);
       }
     } catch (error) {
       throw error;
@@ -176,7 +181,7 @@ class SimpleLogger {
       for (const message of messages) {
         const logObject = printToConsole({ logType: LogType.INFO, message, json: this._json });
 
-        if (this._writeToFile) this.writeToLogFile(logObject);
+        if (this._writeToFile) this.writeToLogFile(logObject, this._json);
       }
     } catch (error) {
       throw error;
@@ -188,7 +193,7 @@ class SimpleLogger {
       for (const message of messages) {
         const logObject = printToConsole({ logType: LogType.LOG, message, json: this._json });
 
-        if (this._writeToFile) this.writeToLogFile(logObject);
+        if (this._writeToFile) this.writeToLogFile(logObject, this._json);
       }
     } catch (error) {
       throw error;
@@ -201,7 +206,7 @@ class SimpleLogger {
       for (const message of messages) {
         const logObject = printToConsole({ logType: LogType.WARN, message, json: this._json });
 
-        if (this._writeToFile) this.writeToLogFile(logObject);
+        if (this._writeToFile) this.writeToLogFile(logObject, this._json);
       }
     } catch (error) {
       throw error;
@@ -218,8 +223,8 @@ class SimpleLogger {
         error: error,
         json: this._json,
       });
-      key = logObject.errorKey;
-      if (this._writeToFile) this.writeToLogFile(logObject);
+      key = logObject.key;
+      if (this._writeToFile) this.writeToLogFile(logObject.data, this._json);
       if (exit) {
         return process.exit(1);
       } else {
@@ -232,6 +237,7 @@ class SimpleLogger {
 
   public static expressReqLogs(opts: ReqMidOptions = {}) {
     return (req: Request, res: Response, nxt: NextFunction) => {
+      if (!this._isInitialized) throw LogsNotInitaizedError;
       const { headers, httpVersion, method, socket, url, body, params } = req;
       const { remoteAddress, remoteFamily } = socket;
 
@@ -245,16 +251,19 @@ class SimpleLogger {
       const requestHttpVersion = httpVersion || null;
       const requestRemoteFamily = remoteFamily || null;
 
-      let writeToFile: boolean = true;
+      let writeToFile: boolean = this._writeToFile;
+      let json: boolean = this._json;
       let hideBodyFields: string[] = [];
       let hideHeaders: string[] = [];
-      let json: boolean = true;
 
-      if (opts && opts.writeToFile) writeToFile = opts.writeToFile;
-      if (opts && opts.hideBodyFields) hideBodyFields = opts.hideBodyFields;
-      if (opts && opts.hideHeaders) hideHeaders = opts.hideHeaders;
-      if (opts && opts.json) json = opts.json;
+      if (typeof opts.writeToFile !== 'undefined') writeToFile = opts.writeToFile;
+      if (typeof opts.hideBodyFields !== 'undefined') hideBodyFields = opts.hideBodyFields;
+      if (typeof opts.hideHeaders !== 'undefined') hideHeaders = opts.hideHeaders;
+      if (typeof opts.json !== 'undefined') json = opts.json;
 
+      /**
+       * Delete hiddens fields based on middleware settings
+       */
       if (hideBodyFields.length > 0) {
         hideBodyFields.forEach((field) => {
           delete body[field];
@@ -267,7 +276,7 @@ class SimpleLogger {
         });
       }
 
-      const dataObject = {
+      const dataObject: ReqLogObject = {
         timestamp: getUTCString(),
         type: LogType.REQUEST,
         method: requestMethod,
@@ -281,11 +290,9 @@ class SimpleLogger {
         body: requestBody,
       };
 
-      if (!this._isInitialized) throw LogsNotInitaizedError;
-
       try {
-        printToConsole({ logType: LogType.REQUEST, dataObject, json });
-        if (writeToFile) this.writeToLogFile(dataObject);
+        const returnValue = printToConsole({ logType: LogType.REQUEST, dataObject, json });
+        if (writeToFile) this.writeToLogFile(returnValue, json);
         return nxt();
       } catch (error) {
         return nxt(error);

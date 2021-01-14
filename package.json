@@ -7,8 +7,8 @@
     "dist/**/*"
   ],
   "scripts": {
+    "pretest": "tsc && rimraf logs",
     "test": "NODE_ENV=test mocha --timeout 15000 --recursive --exit -r ts-node/register 'test/**/*.test.ts'",
-    "posttest": "rimraf logs",
     "clean": "rimraf logs dist",
     "build": "tsc",
     "format": "prettier --write \"src/**/*.ts\"",

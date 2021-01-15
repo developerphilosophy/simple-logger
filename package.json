@@ -19,9 +19,11 @@
     "postversion": "git push && git push --tags"
   },
   "keywords": [
-    "loggers",
+    "simple",
+    "logger",
     "logs",
-    "simple"
+    "express-logger",
+    "express-middelware"
   ],
   "author": {
     "name": "Love Bhardwaj",

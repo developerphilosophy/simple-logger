@@ -190,7 +190,7 @@ Logger.pruneLogs();
 
 ### Express Request Logger Middelware
 
-A small middleware function to log Express requests. Pass it before your routes to log all incoming requests. If value not present it will write null to logs.
+A small middleware function to log Express requests. Pass it before your routes to log all incoming requests. It will write to the same log file as the logger.
 
 ```ts
 // Get the request logging middleware

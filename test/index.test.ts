@@ -11,7 +11,7 @@ describe('UNIT: Test initialization and use of variable logging methods', () => 
   let logs = `${logDirPath}/${logFileName}`;
 
   function initLogs() {
-    SimpleLogger.initLogs();
+    SimpleLogger.initLogs({ json: false });
   }
 
   it('Should throw an error if logs not initialized before calling log methods', () => {
@@ -116,8 +116,11 @@ describe('UNIT: Express logger middleware test', () => {
     SimpleLogger.expressReqLogs({
       hideBodyFields: ['password'],
       hideHeaders: ['token'],
+      json: true,
     })(req, res, nxt);
     const content: string = fs.readFileSync(logs, 'utf-8');
     expect(content.includes(`"type": "REQUEST"`)).to.be.true;
+    expect(content.includes('token')).to.be.false;
+    expect(content.includes('password')).to.be.false;
   });
 });

@@ -1,6 +1,6 @@
 import chalk from 'chalk';
-import ReqLogObject from '../interfaces/reqLogObject';
-import { LogType } from '../enums/logType';
+import { LogObject, ErrorLogObject, ReqLogObject } from '../types/types';
+import { LogType } from '../enums/enums';
 
 export function printErrorToConsole(error: Error) {
   return console.error(chalk.red(error.message), '\n', error);
@@ -10,91 +10,106 @@ export function getUTCString(): string {
   return new Date().toUTCString();
 }
 
-interface PrintConsoleOpts {
-  logType: LogType;
-  message?: string;
-  error?: Error;
-  dataObject?: ReqLogObject;
-  json: boolean;
-}
-
-export function printToConsole(options: PrintConsoleOpts): any {
+export function getLogObject(type: LogType, message: string): LogObject {
   const timestamp = getUTCString();
-  const type: LogType = options.logType;
-  const json = options.json;
-  const message = options.message;
-
-  let logObject = {
-    type,
+  const logObject: LogObject = {
     timestamp,
+    type,
     message,
   };
-  switch (type) {
+  return logObject;
+}
+
+export function logObjectToString(logObj: LogObject) {
+  const formattedString = `${logObj.timestamp} ${logObj.type}: ${logObj.message}`;
+  return formattedString;
+}
+
+export function printJsonLog(logObj: LogObject) {
+  const stringToPrint = stringifyObject(logObj);
+  switch (logObj.type) {
     case LogType.DEBUG:
-      if (json) {
-        console.log(chalk.yellow(JSON.stringify(logObject, null, 2)));
-        return logObject;
-      } else {
-        const debugString = `${timestamp} ${LogType.DEBUG}: ${message}`;
-        console.log(chalk.yellow(debugString));
-        return debugString;
-      }
+      console.log(chalk.yellow(stringToPrint));
+      return;
     case LogType.INFO:
-      if (json) {
-        console.log(chalk.green(JSON.stringify(logObject, null, 2)));
-        return logObject;
-      } else {
-        const infoString = `${timestamp} ${LogType.INFO}: ${message}`;
-        console.log(chalk.green(infoString));
-        return infoString;
-      }
-    case LogType.LOG:
-      if (json) {
-        console.log(chalk.white(JSON.stringify(logObject, null, 2)));
-        return logObject;
-      } else {
-        const logString = `${timestamp} ${LogType.LOG}: ${message}`;
-        console.log(chalk.white(logString));
-        return logString;
-      }
+      console.log(chalk.white(stringToPrint));
+      return;
     case LogType.WARN:
-      if (json) {
-        console.log(chalk.blue(JSON.stringify(logObject, null, 2)));
-        return logObject;
-      } else {
-        const warnString = `${timestamp} ${LogType.WARN}: ${message}`;
-        console.log(chalk.blue(warnString));
-        return warnString;
-      }
-    case LogType.ERROR:
-      const key = Date.now();
-      const errorStack = options.error?.stack || null;
-      const errorObject = { errorKey: key, ...logObject, errorStack: errorStack };
-      if (json) {
-        console.error(chalk.red(JSON.stringify(errorObject, null, 2)));
-        return { data: errorObject, key };
-      } else {
-        const errorString = `${timestamp} ${LogType.ERROR}: Error Key - ${key} ${errorObject.message}\nError Stack: ${errorStack}`;
-        console.log(chalk.red(errorString));
-        return { data: errorString, key };
-      }
-    case LogType.REQUEST:
-      const reqLog = options.dataObject;
-      if (json) {
-        console.log(chalk.green(JSON.stringify(options.dataObject, null, 2)));
-        return reqLog;
-      } else {
-        const reqLogString = `${timestamp}, ${LogType.REQUEST}: method - ${reqLog?.method}, url - ${
-          reqLog?.url
-        }, clientIp - ${reqLog?.clientIp}, ipFamily - ${reqLog?.ipFamily}, userAgent - ${
-          reqLog?.userAgent
-        }, httpVersion - ${reqLog?.httpVersion}, params - ${JSON.stringify(reqLog?.params)}, headers - ${JSON.stringify(
-          reqLog?.headers,
-        )}, body - ${JSON.stringify(reqLog?.body)}`;
-        console.log(chalk.green(reqLogString));
-        return reqLogString;
-      }
+      console.log(chalk.blue(stringToPrint));
+      return;
     default:
-      return 0;
+      console.log(chalk.white(stringToPrint));
+      return;
   }
+}
+
+export function printStringLog(logObj: LogObject): void {
+  const formattedString = logObjectToString(logObj);
+  switch (logObj.type) {
+    case LogType.DEBUG:
+      console.debug(chalk.yellow(formattedString));
+      return;
+    case LogType.INFO:
+      console.info(chalk.white(formattedString));
+      return;
+    case LogType.WARN:
+      console.warn(chalk.blue(formattedString));
+      return;
+    default:
+      console.log(chalk.white(formattedString));
+      return;
+  }
+}
+
+export function getErrorLogObject(error: Error): ErrorLogObject {
+  const timestamp = getUTCString();
+  const message = error.message;
+  const errorStack = error.stack || null;
+  const errorKey = Date.now();
+
+  const errorLogObject: ErrorLogObject = {
+    timestamp,
+    type: LogType.ERROR,
+    errorKey,
+    message,
+    errorStack,
+  };
+  return errorLogObject;
+}
+
+export function errorObjectToString(errObj: ErrorLogObject): string {
+  return `${errObj.timestamp} ${errObj.type}: Error Key - ${errObj.errorKey}, ${errObj.message}\n${errObj.errorStack}`;
+}
+
+export function printJsonError(errObj: ErrorLogObject): void {
+  const jsonString = stringifyObject(errObj);
+  console.log(chalk.red(jsonString));
+  return;
+}
+
+export function printErrorString(errObj: ErrorLogObject): void {
+  const formattedString = errorObjectToString(errObj);
+  console.log(chalk.red(formattedString));
+}
+
+export function reqLogObjToString(reqLogObj: ReqLogObject) {
+  const reqLogString = `${reqLogObj.timestamp}, ${LogType.REQUEST}: method - ${reqLogObj?.method}, url - ${
+    reqLogObj?.url
+  }, clientIp - ${reqLogObj?.clientIp}, ipFamily - ${reqLogObj?.ipFamily}, userAgent - ${
+    reqLogObj?.userAgent
+  }, httpVersion - ${reqLogObj?.httpVersion}, params - ${JSON.stringify(reqLogObj?.params)}, headers - ${JSON.stringify(
+    reqLogObj?.headers,
+  )}, body - ${JSON.stringify(reqLogObj?.body)}`;
+  return reqLogString;
+}
+
+export function printReqLogJson(reqLogObj: ReqLogObject) {
+  console.log(chalk.green(stringifyObject(reqLogObj)));
+}
+export function printReqLogString(reqLogObj: ReqLogObject) {
+  const stringToPrint = reqLogObjToString(reqLogObj);
+  console.log(chalk.green(stringToPrint));
+}
+export function stringifyObject(obj: any) {
+  return JSON.stringify(obj, null, 2);
 }

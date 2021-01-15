@@ -1,41 +1,58 @@
 import chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
-import { printErrorToConsole, getUTCString, printToConsole } from './lib/utilFunctions';
-import { LogsNotInitaizedError, LogsAlreadyInitializedError } from './lib/errors';
+import {
+  printErrorToConsole,
+  getUTCString,
+  getLogObject,
+  printJsonLog,
+  printStringLog,
+  logObjectToString,
+  getErrorLogObject,
+  printJsonError,
+  printErrorString,
+  printReqLogJson,
+  printReqLogString,
+  reqLogObjToString,
+  errorObjectToString,
+} from './lib/utilFunctions';
+import { LogsNotInitaizedError, LogsAlreadyInitializedError, NotWritingAnyLogs } from './errors/errors';
 import { Request, Response, NextFunction } from 'express';
-import { LogType } from './enums/logType';
-import LogOptions from './interfaces/logOptions';
-import ReqMidOptions from './interfaces/reqMidOptions';
-import ReqLogObject from './interfaces/reqLogObject';
+import { LogType } from './enums/enums';
+import { LogOptions, ReqMidOptions, ReqLogObject, LogObject } from './types/types';
+import { clear } from 'console';
 
 class SimpleLogger {
   private static _logName: string = 'sds-simple-logger.logs';
   private static _logsDir: string = path.join(process.env.PWD as string, 'logs'); // Deaults to current directory
   private static _isInitialized: boolean = false;
-  private static _env: string = process.env.NODE_ENV || 'development';
   private static _cycleTime: number = 86400000;
   private static _removeTime: number = 604800000;
   private static _writeToFile: boolean = true;
+  private static _writeToConsole: boolean = true;
   private static _logsDirExists: boolean = false;
   private static _json: boolean = true;
+  private static _handleSyncErrors: boolean = true;
 
-  public static initLogs(options: LogOptions = {}): boolean {
+  public static initLogs(opts: LogOptions = {}): boolean {
     if (this._isInitialized) throw LogsAlreadyInitializedError;
     /**
      * 1. Set the time
      * 2. Initialize the log name
      * 3. Create the logs directory
      */
-    if (typeof options.cycleTime !== 'undefined') this._cycleTime = options.cycleTime;
-    if (typeof options.removeTime !== 'undefined') this._removeTime = options.removeTime;
-    if (typeof options.logsDir !== 'undefined') this._logsDir = options.logsDir;
-    if (typeof options.logName !== 'undefined') this._logName = options.logName;
-    if (typeof options.writeToFile !== 'undefined') this._writeToFile = options.writeToFile;
-    if (typeof options.json !== 'undefined') this._json = options.json;
+    if (typeof opts.cycleTime !== 'undefined') this._cycleTime = opts.cycleTime;
+    if (typeof opts.removeTime !== 'undefined') this._removeTime = opts.removeTime;
+    if (typeof opts.logsDir !== 'undefined') this._logsDir = opts.logsDir;
+    if (typeof opts.logName !== 'undefined') this._logName = opts.logName;
+    if (typeof opts.writeToFile !== 'undefined') this._writeToFile = opts.writeToFile;
+    if (typeof opts.writeToConsole !== 'undefined') this._writeToConsole = opts.writeToConsole;
+    if (typeof opts.json !== 'undefined') this._json = opts.json;
+    if (typeof opts.handleSyncErrors !== 'undefined') this._handleSyncErrors = opts.handleSyncErrors;
 
-    if (!this._logName.includes('.logs')) {
-      console.log(chalk.yellow('By convention it is always recommeded to add .logs extension to log files'));
+    if (!this._writeToConsole && !this._writeToFile) {
+      console.warn(`Both ${chalk.blue('writeToConsole')} and ${chalk.blue('writeToFile')} are set to false`);
+      throw NotWritingAnyLogs;
     }
 
     try {
@@ -43,12 +60,12 @@ class SimpleLogger {
         this.createLogDir();
       }
       this.logFileInit();
+      this.cycleLogs();
     } catch (error) {
       printErrorToConsole(error);
       throw error;
     }
 
-    this.cycleLogs();
     this._isInitialized = true;
     return true;
   }
@@ -73,13 +90,17 @@ class SimpleLogger {
     try {
       fs.appendFileSync(logName, `\n*** New Logging Session Started Created on(UTC time): ${getUTCString()}***\n`);
     } catch (error) {
-      printErrorToConsole(error);
       throw error;
     }
   }
 
   private static cycleLogs(): void {
-    this.logFileInit();
+    try {
+      this.logFileInit();
+    } catch (error) {
+      printErrorToConsole(error);
+    }
+
     setInterval(() => {
       let date = new Date().toLocaleDateString();
       let time = new Date().toLocaleTimeString();
@@ -119,24 +140,6 @@ class SimpleLogger {
     });
   }
 
-  public static pruneLogs(): boolean {
-    if (!this._isInitialized) throw LogsNotInitaizedError;
-
-    try {
-      // 1. Delete the content of directory
-      const dirContent = fs.readdirSync(this._logsDir);
-      dirContent.forEach((file) => {
-        fs.unlinkSync(path.join(this._logsDir, file));
-      });
-      // 2. Remove the directory
-      fs.rmdirSync(this._logsDir);
-      this._logsDirExists = false;
-      return true;
-    } catch (error) {
-      throw error;
-    }
-  }
-
   private static writeToLogFile(message: any, json: boolean = true): void {
     const fullLogPath: string = this.getFullLogPath();
     const UTCString: string = getUTCString();
@@ -158,6 +161,51 @@ class SimpleLogger {
   private static getFullLogPath(): string {
     return path.join(this._logsDir, this._logName);
   }
+
+  private static writeLogsFactory(logObj: LogObject) {
+    if (this._writeToConsole) {
+      if (this._json) {
+        printJsonLog(logObj);
+      } else {
+        printStringLog(logObj);
+      }
+    }
+
+    if (this._writeToFile) {
+      if (this._json) {
+        this.writeToLogFile(logObj, true);
+      } else {
+        const logString = logObjectToString(logObj);
+        this.writeToLogFile(logString, false);
+      }
+    }
+  }
+
+  /**
+   * Exposed functions
+   */
+  public static pruneLogs(): boolean {
+    if (!this._isInitialized) throw LogsNotInitaizedError;
+
+    try {
+      // 1. Delete the content of directory
+      const dirContent = fs.readdirSync(this._logsDir);
+      dirContent.forEach((file) => {
+        fs.unlinkSync(path.join(this._logsDir, file));
+      });
+      // 2. Remove the directory
+      fs.rmdirSync(this._logsDir);
+      this._logsDirExists = false;
+      return true;
+    } catch (error) {
+      if (this._handleSyncErrors) {
+        throw error;
+      } else {
+        printErrorToConsole(error);
+        return false;
+      }
+    }
+  }
   /**
    * All the logging functions
    */
@@ -166,12 +214,15 @@ class SimpleLogger {
 
     try {
       for (const message of messages) {
-        const logObject = printToConsole({ logType: LogType.DEBUG, message, json: this._json });
-
-        if (this._writeToFile) this.writeToLogFile(logObject, this._json);
+        const logObj = getLogObject(LogType.DEBUG, message);
+        this.writeLogsFactory(logObj);
       }
     } catch (error) {
-      throw error;
+      if (this._handleSyncErrors) {
+        throw error;
+      } else {
+        printErrorToConsole(error);
+      }
     }
   }
 
@@ -179,24 +230,30 @@ class SimpleLogger {
     if (!this._isInitialized) throw LogsNotInitaizedError;
     try {
       for (const message of messages) {
-        const logObject = printToConsole({ logType: LogType.INFO, message, json: this._json });
-
-        if (this._writeToFile) this.writeToLogFile(logObject, this._json);
+        const logObj = getLogObject(LogType.INFO, message);
+        this.writeLogsFactory(logObj);
       }
     } catch (error) {
-      throw error;
+      if (this._handleSyncErrors) {
+        throw error;
+      } else {
+        printErrorToConsole(error);
+      }
     }
   }
   public static log(...messages: string[]): void {
     if (!this._isInitialized) throw LogsNotInitaizedError;
     try {
       for (const message of messages) {
-        const logObject = printToConsole({ logType: LogType.LOG, message, json: this._json });
-
-        if (this._writeToFile) this.writeToLogFile(logObject, this._json);
+        const logObj = getLogObject(LogType.LOG, message);
+        this.writeLogsFactory(logObj);
       }
     } catch (error) {
-      throw error;
+      if (this._handleSyncErrors) {
+        throw error;
+      } else {
+        printErrorToConsole(error);
+      }
     }
   }
 
@@ -204,34 +261,51 @@ class SimpleLogger {
     if (!this._isInitialized) throw LogsNotInitaizedError;
     try {
       for (const message of messages) {
-        const logObject = printToConsole({ logType: LogType.WARN, message, json: this._json });
-
-        if (this._writeToFile) this.writeToLogFile(logObject, this._json);
+        const logObj = getLogObject(LogType.WARN, message);
+        this.writeLogsFactory(logObj);
       }
     } catch (error) {
-      throw error;
+      if (this._handleSyncErrors) {
+        throw error;
+      } else {
+        printErrorToConsole(error);
+      }
     }
   }
 
   public static error(error: Error, exit: boolean = false): number {
     if (!this._isInitialized) throw LogsNotInitaizedError;
-    let key: number;
+
+    let errorKey = 0;
+
     try {
-      const logObject = printToConsole({
-        logType: LogType.ERROR,
-        message: error.message,
-        error: error,
-        json: this._json,
-      });
-      key = logObject.key;
-      if (this._writeToFile) this.writeToLogFile(logObject.data, this._json);
-      if (exit) {
-        return process.exit(1);
-      } else {
-        return key;
+      const errorLogObject = getErrorLogObject(error);
+      errorKey = errorLogObject.errorKey;
+
+      if (this._writeToConsole) {
+        if (this._json) {
+          printJsonError(errorLogObject);
+        } else {
+          printErrorString(errorLogObject);
+        }
       }
+
+      if (this._writeToFile) {
+        if (this._json) {
+          this.writeToLogFile(errorLogObject, true);
+        } else {
+          const errorString = errorObjectToString(errorLogObject);
+          this.writeToLogFile(errorString, false);
+        }
+      }
+      return errorLogObject.errorKey;
     } catch (error) {
-      throw error;
+      if (this._handleSyncErrors) {
+        throw error;
+      } else {
+        printErrorToConsole(error);
+        return errorKey;
+      }
     }
   }
 
@@ -252,14 +326,18 @@ class SimpleLogger {
       const requestRemoteFamily = remoteFamily || null;
 
       let writeToFile: boolean = this._writeToFile;
+      let writeToConsole: boolean = this._writeToConsole;
       let json: boolean = this._json;
       let hideBodyFields: string[] = [];
       let hideHeaders: string[] = [];
+      let handleSyncErrors = this._handleSyncErrors;
 
       if (typeof opts.writeToFile !== 'undefined') writeToFile = opts.writeToFile;
+      if (typeof opts.writeToConsole !== 'undefined') writeToConsole = opts.writeToConsole;
       if (typeof opts.hideBodyFields !== 'undefined') hideBodyFields = opts.hideBodyFields;
       if (typeof opts.hideHeaders !== 'undefined') hideHeaders = opts.hideHeaders;
       if (typeof opts.json !== 'undefined') json = opts.json;
+      if (typeof opts.handleSyncErrors !== 'undefined') handleSyncErrors = opts.handleSyncErrors;
 
       /**
        * Delete hiddens fields based on middleware settings
@@ -291,11 +369,31 @@ class SimpleLogger {
       };
 
       try {
-        const returnValue = printToConsole({ logType: LogType.REQUEST, dataObject, json });
-        if (writeToFile) this.writeToLogFile(returnValue, json);
+        if (this._writeToConsole) {
+          if (json) {
+            printReqLogJson(dataObject);
+          } else {
+            printReqLogString(dataObject);
+          }
+        }
+
+        if (this._writeToFile) {
+          if (json) {
+            this.writeToLogFile(dataObject, true);
+          } else {
+            const errorString = reqLogObjToString(dataObject);
+            this.writeToLogFile(errorString, false);
+          }
+        }
+
         return nxt();
       } catch (error) {
-        return nxt(error);
+        if (handleSyncErrors) {
+          return nxt(error);
+        } else {
+          printErrorToConsole(error);
+          return nxt();
+        }
       }
     };
   }

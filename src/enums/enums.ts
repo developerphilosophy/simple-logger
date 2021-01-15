@@ -1,4 +1,4 @@
-export const enum LogType {
+const enum LogType {
   DEBUG = 'DEBUG',
   INFO = 'INFO',
   LOG = 'LOG',
@@ -6,3 +6,5 @@ export const enum LogType {
   ERROR = 'ERROR',
   REQUEST = 'REQUEST',
 }
+
+export { LogType };

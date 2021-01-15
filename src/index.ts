@@ -378,7 +378,7 @@ class SimpleLogger {
       };
 
       try {
-        if (this._writeToConsole) {
+        if (writeToConsole) {
           if (json) {
             printReqLogJson(dataObject);
           } else {
@@ -386,7 +386,7 @@ class SimpleLogger {
           }
         }
 
-        if (this._writeToFile) {
+        if (writeToFile) {
           if (json) {
             this.writeToLogFile(dataObject, true);
           } else {

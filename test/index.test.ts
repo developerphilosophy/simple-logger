@@ -117,11 +117,11 @@ describe('UNIT: Express logger middleware test', () => {
     SimpleLogger.expressReqLogs({
       hideBodyFields: ['password'],
       hideHeaders: ['token'],
-      json: true,
     })(req, res, nxt);
     const content: string = fs.readFileSync(logs, 'utf-8');
     expect(content.includes(`"type": "REQUEST"`)).to.be.true;
     expect(content.includes('token')).to.be.false;
     expect(content.includes('password')).to.be.false;
+    expect(nxt.calledOnce).to.be.true;
   });
 });

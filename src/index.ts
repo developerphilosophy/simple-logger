@@ -32,14 +32,20 @@ class SimpleLogger {
   private static _writeToConsole: boolean = true;
   private static _logsDirExists: boolean = false;
   private static _json: boolean = true;
+  private static _beautifyJson: boolean = true;
   private static _handleSyncErrors: boolean = true;
 
   public static initLogs(opts: LogOptions = {}): boolean {
     if (this._isInitialized) throw LogsAlreadyInitializedError;
     /**
-     * 1. Set the time
-     * 2. Initialize the log name
-     * 3. Create the logs directory
+     * 1. Cycle time for when new log file is created
+     * 2. Remove time, log files older than this are removed daily
+     * 3. Name of the log file
+     * 4. Path to log directory
+     * 5. Should logs be written to file
+     * 6. Should logs be writting to console
+     * 7. Should output be in JSON format
+     * 8. Do you want to handle sync errors yourself?
      */
     if (typeof opts.cycleTime !== 'undefined') this._cycleTime = opts.cycleTime;
     if (typeof opts.removeTime !== 'undefined') this._removeTime = opts.removeTime;
@@ -48,6 +54,7 @@ class SimpleLogger {
     if (typeof opts.writeToFile !== 'undefined') this._writeToFile = opts.writeToFile;
     if (typeof opts.writeToConsole !== 'undefined') this._writeToConsole = opts.writeToConsole;
     if (typeof opts.json !== 'undefined') this._json = opts.json;
+    if (typeof opts.beautifyJson !== 'undefined') this._beautifyJson = opts.beautifyJson;
     if (typeof opts.handleSyncErrors !== 'undefined') this._handleSyncErrors = opts.handleSyncErrors;
 
     if (!this._writeToConsole && !this._writeToFile) {
@@ -142,16 +149,18 @@ class SimpleLogger {
 
   private static writeToLogFile(message: any, json: boolean = true): void {
     const fullLogPath: string = this.getFullLogPath();
-    const UTCString: string = getUTCString();
 
     try {
       if (!this._logsDirExists || !fs.existsSync(this._logsDir)) {
         fs.mkdirSync(this._logsDir, { recursive: true });
       }
       if (json) {
-        fs.appendFileSync(this.getFullLogPath(), `${JSON.stringify(message, null, 2)},\n`);
+        const jsonString = this._beautifyJson
+          ? `${JSON.stringify(message, null, 2)},\n`
+          : `${JSON.stringify(message)},\n`;
+        fs.appendFileSync(fullLogPath, jsonString);
       } else {
-        fs.appendFileSync(this.getFullLogPath(), `${message}\n`);
+        fs.appendFileSync(fullLogPath, `${message}\n`);
       }
     } catch (error) {
       throw error;

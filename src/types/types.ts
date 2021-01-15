@@ -42,6 +42,7 @@ interface LogOptions {
   writeToFile?: boolean;
   writeToConsole?: boolean;
   json?: boolean;
+  beautifyJson?: boolean;
   handleSyncErrors?: boolean;
 }
 

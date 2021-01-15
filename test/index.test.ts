@@ -8,10 +8,11 @@ import * as sinon from 'sinon';
 describe('UNIT: Test initialization and use of variable logging methods', () => {
   let logFileName = 'sds-simple-logger.logs';
   let logDirPath = path.join(process.env.PWD as string, 'logs');
-  let logs = `${logDirPath}/${logFileName}`;
+  // let logDirPath = path.join(__dirname, '../../../../logs');
+  let logs = path.join(logDirPath, logFileName);
 
   function initLogs() {
-    SimpleLogger.initLogs({ json: false });
+    SimpleLogger.initLogs();
   }
 
   it('Should throw an error if logs not initialized before calling log methods', () => {
